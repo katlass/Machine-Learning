@@ -4,4 +4,7 @@
 2. Correlations: compute standard correlation coefficient. 
   a. Only measures linear correlation
   b. corr_matrix = df.corr() or pandas scatter matrix
+    i. if correlatio plots show abnormalities (like lines, considering removing that data to avoid is learning these datat quirks
+3. Data Manipulation
+  a. If seem tail heavy, try log transform or other
 2. Determine if you should use stratified sampling
