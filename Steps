@@ -1,4 +1,5 @@
 1. Look at histograms, determine data irregularities.
   a. Tip: if there is geo data plot it w/ lat/long
   b. Consider a clustering algorithm if you notice common independent variables have common dependent variable
+2. Correlations: compute standard correlation coefficient
 2. Determine if you should use stratified sampling
