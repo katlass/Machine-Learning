@@ -1,0 +1,546 @@
+Jupyter Notebook
+Explore Hearts
+Last Checkpoint: 06/30/2021
+(autosaved)
+Current Kernel Logo
+Python 3 
+File
+Edit
+View
+Insert
+Cell
+Kernel
+Widgets
+Help
+
+Code
+Setup
+
+# To support both python 2 and python 3
+from __future__ import division, print_function, unicode_literals
+
+# Common imports
+import numpy as np
+import os
+import pandas as pd
+
+# to make this notebook's output stable across runs
+np.random.seed(42)
+
+# To plot pretty figures
+%matplotlib inline
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+mpl.rc('axes', labelsize=14)
+mpl.rc('xtick', labelsize=12)
+mpl.rc('ytick', labelsize=12)
+
+# Where to save the figures
+PROJECT_ROOT_DIR = "/Users/katelassiter/Downloads/ML/HeartPredict"
+IMAGES_PATH = os.path.join(PROJECT_ROOT_DIR, "images")
+os.makedirs(IMAGES_PATH, exist_ok=True)
+
+def save_fig(fig_id, tight_layout=True, fig_extension="png", resolution=300):
+    path = os.path.join(IMAGES_PATH, fig_id + "." + fig_extension)
+    print("Saving figure", fig_id)
+    if tight_layout:
+        plt.tight_layout()
+    plt.savefig(path, format=fig_extension, dpi=resolution)
+# To support both python 2 and python 3
+from __future__ import division, print_function, unicode_literals
+​
+# Common imports
+import numpy as np
+import os
+import pandas as pd
+​
+# to make this notebook's output stable across runs
+np.random.seed(42)
+​
+# To plot pretty figures
+%matplotlib inline
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+mpl.rc('axes', labelsize=14)
+mpl.rc('xtick', labelsize=12)
+mpl.rc('ytick', labelsize=12)
+​
+# Where to save the figures
+PROJECT_ROOT_DIR = "/Users/katelassiter/Downloads/ML/HeartPredict"
+IMAGES_PATH = os.path.join(PROJECT_ROOT_DIR, "images")
+os.makedirs(IMAGES_PATH, exist_ok=True)
+​
+def save_fig(fig_id, tight_layout=True, fig_extension="png", resolution=300):
+    path = os.path.join(IMAGES_PATH, fig_id + "." + fig_extension)
+    print("Saving figure", fig_id)
+    if tight_layout:
+        plt.tight_layout()
+    plt.savefig(path, format=fig_extension, dpi=resolution)
+# to make this notebook's output identical at every run
+np.random.seed(42)
+data=pd.read_csv("/Users/katelassiter/Downloads/heart_failure_clinical_records_dataset.csv")
+#Objective: predict death event, so supervised learning
+#binary classification or logistic regression
+#small dataset, can use online learning
+len(data)
+data.head()
+data.info()
+​
+<class 'pandas.core.frame.DataFrame'>
+RangeIndex: 299 entries, 0 to 298
+Data columns (total 13 columns):
+age                         299 non-null float64
+anaemia                     299 non-null int64
+creatinine_phosphokinase    299 non-null int64
+diabetes                    299 non-null int64
+ejection_fraction           299 non-null int64
+high_blood_pressure         299 non-null int64
+platelets                   299 non-null float64
+serum_creatinine            299 non-null float64
+serum_sodium                299 non-null int64
+sex                         299 non-null int64
+smoking                     299 non-null int64
+time                        299 non-null int64
+DEATH_EVENT                 299 non-null int64
+dtypes: float64(3), int64(10)
+memory usage: 30.4 KB
+data.DEATH_EVENT.value_counts()#seems to be some class imbalance
+data.anaemia.value_counts()
+data.diabetes.value_counts()
+data.high_blood_pressure.value_counts()
+data.sex.value_counts()
+data.smoking.value_counts()
+data.describe()
+#Notes on the data: age range is 40-95 (only older people)
+#Anemia, diabetes, high blood, sex pressure, smoking is a binary variable
+age	anaemia	creatinine_phosphokinase	diabetes	ejection_fraction	high_blood_pressure	platelets	serum_creatinine	serum_sodium	sex	smoking	time	DEATH_EVENT
+count	299.000000	299.000000	299.000000	299.000000	299.000000	299.000000	299.000000	299.00000	299.000000	299.000000	299.00000	299.000000	299.00000
+mean	60.833893	0.431438	581.839465	0.418060	38.083612	0.351171	263358.029264	1.39388	136.625418	0.648829	0.32107	130.260870	0.32107
+std	11.894809	0.496107	970.287881	0.494067	11.834841	0.478136	97804.236869	1.03451	4.412477	0.478136	0.46767	77.614208	0.46767
+min	40.000000	0.000000	23.000000	0.000000	14.000000	0.000000	25100.000000	0.50000	113.000000	0.000000	0.00000	4.000000	0.00000
+25%	51.000000	0.000000	116.500000	0.000000	30.000000	0.000000	212500.000000	0.90000	134.000000	0.000000	0.00000	73.000000	0.00000
+50%	60.000000	0.000000	250.000000	0.000000	38.000000	0.000000	262000.000000	1.10000	137.000000	1.000000	0.00000	115.000000	0.00000
+75%	70.000000	1.000000	582.000000	1.000000	45.000000	1.000000	303500.000000	1.40000	140.000000	1.000000	1.00000	203.000000	1.00000
+max	95.000000	1.000000	7861.000000	1.000000	80.000000	1.000000	850000.000000	9.40000	148.000000	1.000000	1.00000	285.000000	1.00000
+%matplotlib inline
+import matplotlib.pyplot as plt
+data.hist(bins=50, figsize=(20,15))
+save_fig("attribute_histogram_plots")
+plt.show()
+#creatine and serum creatine, serum sodium seems tail heavy
+#class imbalance high blood pressure, sex,smoking
+Saving figure attribute_histogram_plots
+
+from sklearn.utils import shuffle
+#shuffle because some algorithms need it
+data=shuffle(data)
+#need to find out important independent varibales so can decide if need stratified sampling
+#class imalance using stratefied sampling
+from sklearn.model_selection import StratifiedShuffleSplit
+split = StratifiedShuffleSplit(n_splits=1, test_size=0.3, random_state=42)
+for train_index, test_index in split.split(data, data["DEATH_EVENT"]):
+    strat_train_set = data.loc[train_index]
+    strat_test_set = data.loc[test_index] #class imbalance we will want to use stratiffied sampling
+strat_test_set=strat_test_set.reset_index()
+strat_train_set.DEATH_EVENT.value_counts()
+len(strat_test_set)
+90
+#from sklearn.model_selection import train_test_split
+#train_set, test_set = train_test_split(data, test_size=0.2, random_state=42)
+​
+heart = strat_train_set.copy()
+#most correlated to death: serum_creatinine,age,creatinine_phosphokinase,time,ejection_fraction,serum_sodium
+corr_matrix = heart.corr()
+corr_matrix["DEATH_EVENT"].sort_values(ascending=False)
+​
+DEATH_EVENT                 1.000000
+serum_creatinine            0.295339
+age                         0.203024
+high_blood_pressure         0.087380
+creatinine_phosphokinase    0.038808
+anaemia                     0.019485
+platelets                  -0.021264
+smoking                    -0.044904
+sex                        -0.054013
+diabetes                   -0.054170
+serum_sodium               -0.209980
+ejection_fraction          -0.279143
+time                       -0.537770
+Name: DEATH_EVENT, dtype: float64
+from pandas.plotting import scatter_matrix
+attributes = ['DEATH_EVENT','serum_creatinine','age','time','ejection_fraction']
+scatter_matrix(heart[attributes], figsize=(12, 8))
+save_fig("scatter_matrix_plot")
+Saving figure scatter_matrix_plot
+
+heart.columns
+heart.columns[0:3]
+heart.info()
+<class 'pandas.core.frame.DataFrame'>
+Int64Index: 209 entries, 254 to 75
+Data columns (total 13 columns):
+age                         209 non-null float64
+anaemia                     209 non-null int64
+creatinine_phosphokinase    209 non-null int64
+diabetes                    209 non-null int64
+ejection_fraction           209 non-null int64
+high_blood_pressure         209 non-null int64
+platelets                   209 non-null float64
+serum_creatinine            209 non-null float64
+serum_sodium                209 non-null int64
+sex                         209 non-null int64
+smoking                     209 non-null int64
+time                        209 non-null int64
+DEATH_EVENT                 209 non-null int64
+dtypes: float64(3), int64(10)
+memory usage: 22.9 KB
+#check for null values
+def NULLChecker(df,res=False):
+    df=df.replace(r'^\s*$', np.nan, regex=True)
+    res1=df.isnull().values.any()
+    if res1 == True:res=df.columns[housing.isna().any()].tolist()
+    return(res)     
+NULLChecker(heart) 
+False
+def NullRows(df,res=False):
+    df=df[df.isnull().any(axis=1)].head()
+    if len(df)>0:
+        res=df
+    return(res)
+NullRows(heart)
+False
+#This is standardsetup
+#add_extra_features is justa function
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import FunctionTransformer
+​
+num_pipeline = Pipeline([
+        #('imputer', SimpleImputer(strategy="median")),
+        #('attribs_adder', FunctionTransformer(add_extra_features, validate=False)),
+        ('std_scaler', StandardScaler()),
+    ])
+​
+heart_tran = num_pipeline.fit_transform(heart.drop("DEATH_EVENT", axis=1))
+heart.describe()
+heart_tran
+array([[-0.71333016,  1.11683115, -0.15561111, ...,  0.7172815 ,
+        -0.68689955,  1.1551166 ],
+       [-0.62787775, -0.89539049, -0.01606824, ...,  0.7172815 ,
+        -0.68689955,  1.12895215],
+       [ 0.73936085, -0.89539049, -0.44803549, ..., -1.39415278,
+        -0.68689955, -0.79413483],
+       ...,
+       [-0.79878257, -0.89539049,  3.45608652, ...,  0.7172815 ,
+         1.45581695,  0.25244311],
+       [-0.9696874 , -0.89539049, -0.49523381, ...,  0.7172815 ,
+         1.45581695, -0.11385917],
+       [-0.11516328,  1.11683115, -0.56500524, ...,  0.7172815 ,
+         1.45581695, -0.70255926]])
+#if you did two pipeline like one for cat vars and num vars
+#from sklearn.compose import ColumnTransformer
+##num_attribs = list(housing_num)
+#cat_attribs = ["ocean_proximity"]
+​
+#full_pipeline = ColumnTransformer([
+#        ("num", num_pipeline, num_attribs),
+#        ("cat", OneHotEncoder(), cat_attribs),
+#    ])
+​
+#housing_prepared = full_pipeline.fit_transform(housing)
+from sklearn.compose import ColumnTransformer
+num_pipeline = Pipeline([
+        #('imputer', SimpleImputer(strategy="median")),
+        #('attribs_adder', FunctionTransformer(add_extra_features, validate=False)),
+        ('std_scaler', StandardScaler()),
+    ])
+​
+full_pipeline = ColumnTransformer([
+        ("num", num_pipeline, heart.drop("DEATH_EVENT", axis=1).columns)
+    ])
+​
+heart_prepared = full_pipeline.fit_transform(heart)
+#regression
+from sklearn.linear_model import LinearRegression
+​
+lin_reg = LinearRegression()
+lin_reg.fit(heart_prepared,  heart["DEATH_EVENT"].values)
+LinearRegression(copy_X=True, fit_intercept=True, n_jobs=None, normalize=False)
+# let's try the full preprocessing pipeline on a few training instances
+some_data = heart.iloc[:5]
+some_labels = heart.DEATH_EVENT.iloc[:5]
+some_data_prepared = full_pipeline.transform(some_data)
+​
+print("Predictions:", lin_reg.predict(some_data_prepared))
+Predictions: [-0.32945067  0.07386829  0.78335847  0.52241133  0.2370528 ]
+# let's try the full preprocessing pipeline on a few training instances
+some_data_prepared = full_pipeline.transform(heart.drop("DEATH_EVENT", axis=1))
+print("Predictions:", np.round(lin_reg.predict(some_data_prepared)))
+Predictions: [-0.  0.  1.  1.  0.  1.  0.  1.  0.  1.  0.  0.  1.  0.  1.  0. -0.  0.
+  1.  0.  1.  0.  1.  0.  0. -0.  0.  0.  0.  0.  0.  0.  0.  0.  1.  0.
+  0.  0.  1.  1.  1.  0.  1.  0.  0.  0.  0.  0.  1.  0.  1. -0. -0.  0.
+  0. -0. -0.  0.  0.  0.  1.  0.  0.  0. -0.  1. -0.  0.  1.  1.  0.  0.
+  1.  1.  1.  0.  1.  1.  0.  0.  1.  0.  0. -0.  1.  0. -0.  1.  0.  0.
+  0.  1. -0. -0.  0.  0.  1.  1. -0. -0.  1.  0.  0.  1.  0. -0.  1.  1.
+  0.  1.  0.  1.  1.  0.  0.  1.  0.  0.  0. -0.  0.  0.  0. -0. -0.  1.
+ -0.  0.  1.  0.  0.  0.  1. -0.  0.  0.  1. -0.  1.  1.  0.  0.  0.  0.
+ -0.  0.  1. -0.  1.  0.  1.  1. -0.  0.  0.  0.  1.  0.  0.  0. -0.  0.
+  0.  0.  0.  1.  0.  1.  1.  0.  0.  1.  0.  1.  1.  0.  0.  1.  0. -0.
+  1.  0.  0.  0.  1.  1.  1.  1.  0.  0.  0.  1.  1.  0.  0.  0. -0.  0.
+  0.  1. -0. -0.  0.  0.  0.  0.  0.  0.  1.]
+from sklearn.metrics import mean_squared_error
+heart_predictions = lin_reg.predict(some_data_prepared)
+lin_mse = mean_squared_error(heart["DEATH_EVENT"], heart_predictions)
+lin_rmse = np.sqrt(lin_mse)
+lin_rmse
+0.35806997878393604
+from sklearn.metrics import mean_absolute_error
+lin_mae = mean_absolute_error(heart["DEATH_EVENT"], heart_predictions)
+lin_mae
+0.2972662991992899
+from sklearn.tree import DecisionTreeRegressor
+tree_reg = DecisionTreeRegressor(random_state=42)
+heart["DEATH_EVENT"].values
+tree_reg.fit(heart_prepared, heart["DEATH_EVENT"])
+DecisionTreeRegressor(criterion='mse', max_depth=None, max_features=None,
+                      max_leaf_nodes=None, min_impurity_decrease=0.0,
+                      min_impurity_split=None, min_samples_leaf=1,
+                      min_samples_split=2, min_weight_fraction_leaf=0.0,
+                      presort=False, random_state=42, splitter='best')
+heart_predictions = tree_reg.predict(heart_prepared)
+tree_mse = mean_squared_error(heart["DEATH_EVENT"], heart_predictions)
+tree_rmse = np.sqrt(tree_mse)
+tree_rmse
+0.0
+from sklearn.model_selection import cross_val_score
+​
+scores = cross_val_score(tree_reg, heart_prepared, heart["DEATH_EVENT"],
+                         scoring="neg_mean_squared_error", cv=10)
+tree_rmse_scores = np.sqrt(-scores)
+def display_scores(scores):
+    print("Scores:", scores)
+    print("Mean:", scores.mean())
+    print("Standard deviation:", scores.std())
+​
+display_scores(tree_rmse_scores)
+Scores: [0.48795004 0.48795004 0.48795004 0.37796447 0.37796447 0.48795004
+ 0.6172134  0.48795004 0.6172134  0.5       ]
+Mean: 0.4930105928086522
+Standard deviation: 0.07582927658882867
+lin_scores = cross_val_score(lin_reg, heart_prepared, heart["DEATH_EVENT"],
+                             scoring="neg_mean_squared_error", cv=10)
+lin_rmse_scores = np.sqrt(-lin_scores)
+display_scores(lin_rmse_scores)
+Scores: [0.39920885 0.45608796 0.35252899 0.37869037 0.34237531 0.33538898
+ 0.38147055 0.47233301 0.36895594 0.34708054]
+Mean: 0.383412048619538
+Standard deviation: 0.04465117985367723
+from sklearn.ensemble import RandomForestRegressor
+​
+forest_reg = RandomForestRegressor(n_estimators=10, random_state=42)
+forest_reg.fit(heart_prepared, heart["DEATH_EVENT"])
+heart_predictions = forest_reg.predict(heart_prepared)
+forest_mse = mean_squared_error(heart["DEATH_EVENT"], heart_predictions)
+forest_rmse = np.sqrt(forest_mse)
+forest_rmse
+0.14867838833500563
+#because the rsme is much lower on just the training set as a whole than the CV, we know its overfitting
+forest_scores = cross_val_score(forest_reg, heart_prepared, heart["DEATH_EVENT"],
+                                scoring="neg_mean_squared_error", cv=10)
+forest_rmse_scores = np.sqrt(-forest_scores)
+display_scores(forest_rmse_scores)
+Scores: [0.38172541 0.38234863 0.44933814 0.34434202 0.27080128 0.26636888
+ 0.3047247  0.44986771 0.41173269 0.40926764]
+Mean: 0.3670517095633739
+Standard deviation: 0.06454378087361948
+from sklearn.svm import SVR
+​
+svm_reg = SVR(kernel="linear")
+svm_reg.fit( heart_prepared, heart["DEATH_EVENT"])
+heart_predictions = svm_reg.predict(heart_prepared)
+svm_mse = mean_squared_error(heart["DEATH_EVENT"], heart_predictions)
+svm_rmse = np.sqrt(svm_mse)
+svm_rmse
+0.3630729589894955
+from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.tree import DecisionTreeRegressor
+​
+tree_reg = DecisionTreeRegressor(random_state=42)
+heart["DEATH_EVENT"].values
+​
+tree_reg.fit(heart_prepared, heart["DEATH_EVENT"])
+class ModelFinder(BaseEstimator, TransformerMixin):
+    def __init__(self, lin_reg = False): # no *args or **kwargs
+        self.lin_reg = lin_reg
+    def fit(self, X, y=None):
+        return self  # nothing else to do
+    def transform(self, X, y):
+        if self.lin_reg:     
+            model_predictions = lin_reg.predict(X)
+            lin_mse = mean_squared_error(y, model_predictions)
+            lin_rmse = np.sqrt(lin_mse)
+            return(lin_rmse)
+     #   if self.tree_reg:
+            
+​
+​
+find_model = ModelFinder(lin_reg=True)
+rsme = find_model.transform(heart_prepared,heart["DEATH_EVENT"])
+#use to save model
+import joblib
+joblib.dump(svm_reg,'/Users/katelassiter/Downloads/ML/cat.pkl')
+joblib.load("/Users/katelassiter/Downloads/ML/cat.pkl")
+SVR(C=1.0, cache_size=200, coef0=0.0, degree=3, epsilon=0.1,
+    gamma='auto_deprecated', kernel='linear', max_iter=-1, shrinking=True,
+    tol=0.001, verbose=False)
+from sklearn.model_selection import GridSearchCV
+​
+param_grid = [
+    # try 12 (3×4) combinations of hyperparameters
+    {'n_estimators': [3, 10, 30], 'max_features': [2, 4, 6, 8]},
+    # then try 6 (2×3) combinations with bootstrap set as False
+    {'bootstrap': [False], 'n_estimators': [3, 10], 'max_features': [2, 3, 4]},
+  ]
+​
+forest_reg = RandomForestRegressor(random_state=42)
+# train across 5 folds, that's a total of (12+6)*5=90 rounds of training 
+grid_search = GridSearchCV(forest_reg, param_grid, cv=5,
+                           scoring='neg_mean_squared_error', return_train_score=True)
+grid_search.fit(heart_prepared, heart["DEATH_EVENT"])
+grid_search.best_params_
+grid_search.best_estimator_
+/Users/katelassiter/anaconda3/lib/python3.7/site-packages/sklearn/model_selection/_search.py:813: DeprecationWarning: The default of the `iid` parameter will change from True to False in version 0.22 and will be removed in 0.24. This will change numeric results when test-set sizes are unequal.
+  DeprecationWarning)
+RandomForestRegressor(bootstrap=True, criterion='mse', max_depth=None,
+                      max_features=6, max_leaf_nodes=None,
+                      min_impurity_decrease=0.0, min_impurity_split=None,
+                      min_samples_leaf=1, min_samples_split=2,
+                      min_weight_fraction_leaf=0.0, n_estimators=30,
+                      n_jobs=None, oob_score=False, random_state=42, verbose=0,
+                      warm_start=False)
+cvres = grid_search.cv_results_
+for mean_score, params in zip(cvres["mean_test_score"], cvres["params"]):
+    print(np.sqrt(-mean_score), params)
+0.39869537376707076 {'max_features': 2, 'n_estimators': 3}
+0.3642518714259689 {'max_features': 2, 'n_estimators': 10}
+0.3498309761233217 {'max_features': 2, 'n_estimators': 30}
+0.38096662083205896 {'max_features': 4, 'n_estimators': 3}
+0.3462029164090672 {'max_features': 4, 'n_estimators': 10}
+0.34252867103906093 {'max_features': 4, 'n_estimators': 30}
+0.3844394968536599 {'max_features': 6, 'n_estimators': 3}
+0.34710008484516613 {'max_features': 6, 'n_estimators': 10}
+0.3377223016084686 {'max_features': 6, 'n_estimators': 30}
+0.3933254939342585 {'max_features': 8, 'n_estimators': 3}
+0.35080222484604884 {'max_features': 8, 'n_estimators': 10}
+0.3418295212299015 {'max_features': 8, 'n_estimators': 30}
+0.4547580576695891 {'bootstrap': False, 'max_features': 2, 'n_estimators': 3}
+0.37798255700115213 {'bootstrap': False, 'max_features': 2, 'n_estimators': 10}
+0.40399388355258553 {'bootstrap': False, 'max_features': 3, 'n_estimators': 3}
+0.3571551604169261 {'bootstrap': False, 'max_features': 3, 'n_estimators': 10}
+0.40727044884302305 {'bootstrap': False, 'max_features': 4, 'n_estimators': 3}
+0.37993955701617327 {'bootstrap': False, 'max_features': 4, 'n_estimators': 10}
+from sklearn.model_selection import RandomizedSearchCV
+from scipy.stats import randint
+​
+param_distribs = {
+        'n_estimators': randint(low=1, high=200),
+        'max_features': randint(low=1, high=8),
+    }
+​
+forest_reg = RandomForestRegressor(random_state=42)
+rnd_search = RandomizedSearchCV(forest_reg, param_distributions=param_distribs,
+                                n_iter=10, cv=5, scoring='neg_mean_squared_error', random_state=42)
+rnd_search.fit(heart_prepared, heart["DEATH_EVENT"].values)
+/Users/katelassiter/anaconda3/lib/python3.7/site-packages/sklearn/model_selection/_search.py:813: DeprecationWarning: The default of the `iid` parameter will change from True to False in version 0.22 and will be removed in 0.24. This will change numeric results when test-set sizes are unequal.
+  DeprecationWarning)
+RandomizedSearchCV(cv=5, error_score='raise-deprecating',
+                   estimator=RandomForestRegressor(bootstrap=True,
+                                                   criterion='mse',
+                                                   max_depth=None,
+                                                   max_features='auto',
+                                                   max_leaf_nodes=None,
+                                                   min_impurity_decrease=0.0,
+                                                   min_impurity_split=None,
+                                                   min_samples_leaf=1,
+                                                   min_samples_split=2,
+                                                   min_weight_fraction_leaf=0.0,
+                                                   n_estimators='warn',
+                                                   n_jobs=None, oob_score=False,
+                                                   random_sta...
+                                                   warm_start=False),
+                   iid='warn', n_iter=10, n_jobs=None,
+                   param_distributions={'max_features': <scipy.stats._distn_infrastructure.rv_frozen object at 0x1a27ebac50>,
+                                        'n_estimators': <scipy.stats._distn_infrastructure.rv_frozen object at 0x1a27eba400>},
+                   pre_dispatch='2*n_jobs', random_state=42, refit=True,
+                   return_train_score=False, scoring='neg_mean_squared_error',
+                   verbose=0)
+cvres = rnd_search.cv_results_
+for mean_score, params in zip(cvres["mean_test_score"], cvres["params"]):
+    print(np.sqrt(-mean_score), params)
+feature_importances = grid_search.best_estimator_.feature_importances_
+feature_importances
+0.3461551386283592 {'max_features': 7, 'n_estimators': 180}
+0.34803313071377057 {'max_features': 5, 'n_estimators': 15}
+0.34625063428472147 {'max_features': 3, 'n_estimators': 72}
+0.3524911615726855 {'max_features': 5, 'n_estimators': 21}
+0.3457391685985652 {'max_features': 7, 'n_estimators': 122}
+0.3465562331770334 {'max_features': 3, 'n_estimators': 75}
+0.3452018761306428 {'max_features': 3, 'n_estimators': 88}
+0.3527859049577266 {'max_features': 5, 'n_estimators': 100}
+0.34249483401033065 {'max_features': 3, 'n_estimators': 150}
+0.3851303141167605 {'max_features': 5, 'n_estimators': 2}
+array([0.05349682, 0.01358766, 0.06160284, 0.00918802, 0.12059502,
+       0.0161924 , 0.04649724, 0.16133723, 0.04017598, 0.00989536,
+       0.0171858 , 0.45024563])
+#most important features are 
+#(0.4048419657418353, 'time'),
+# (0.1577130397171609, 'serum_creatinine'),
+# (0.1079096499046642, 'ejection_fraction'),
+sorted(zip(feature_importances,heart.drop("DEATH_EVENT", axis=1).columns), reverse=True)
+[(0.4502456266161925, 'time'),
+ (0.16133723416372014, 'serum_creatinine'),
+ (0.12059502086991868, 'ejection_fraction'),
+ (0.06160283603708053, 'creatinine_phosphokinase'),
+ (0.05349681647237811, 'age'),
+ (0.04649724351210121, 'platelets'),
+ (0.040175982795631754, 'serum_sodium'),
+ (0.01718579572864352, 'smoking'),
+ (0.016192404927871773, 'high_blood_pressure'),
+ (0.013587657931135899, 'anaemia'),
+ (0.009895363087553514, 'sex'),
+ (0.009188017857772386, 'diabetes')]
+#once you picked a model:
+final_model = grid_search.best_estimator_
+​
+X_test = strat_test_set.drop("DEATH_EVENT", axis=1)
+y_test = strat_test_set["DEATH_EVENT"].copy()
+​
+X_test_prepared = full_pipeline.transform(X_test)
+final_predictions = final_model.predict(X_test_prepared)
+​
+final_mse = mean_squared_error(y_test, final_predictions)
+final_rmse = np.sqrt(final_mse)
+final_rmse
+0.3375657229102958
+#We can compute a 95% confidence interval for the test RMSE:
+from scipy import stats
+confidence = 0.95
+squared_errors = (final_predictions - y_test) ** 2
+mean = squared_errors.mean()
+m = len(squared_errors)
+​
+np.sqrt(stats.t.interval(confidence, m - 1,
+                         loc=np.mean(squared_errors),
+                         scale=stats.sem(squared_errors)))
+#Alternatively, we could use a z-scores rather than t-scores:
+zscore = stats.norm.ppf((1 + confidence) / 2)
+zmargin = zscore * squared_errors.std(ddof=1) / np.sqrt(m)
+np.sqrt(mean - zmargin), np.sqrt(mean + zmargin)
+(0.2619046698438202, 0.3991330335638741)
+import numpy as np
+some_data_prepared = full_pipeline.transform(some_data)
+​
+print("Predictions:", lin_reg.predict(some_data_prepared))
+shuffle_index = np.random.permutation(60000)
+X_train, y_train = X_train[shuffle_index], y_train[shuffle_index]
