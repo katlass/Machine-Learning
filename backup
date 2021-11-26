@@ -1,0 +1,366 @@
+Jupyter Notebook
+Final Hearts
+Last Checkpoint: 08/19/2021
+(autosaved)
+Current Kernel Logo
+Python 3 
+File
+Edit
+View
+Insert
+Cell
+Kernel
+Widgets
+Help
+
+Code
+# To support both python 2 and python 3
+from __future__ import division, print_function, unicode_literals
+​
+# Common imports
+import numpy as np
+import os
+import pandas as pd
+from scipy.stats import randint
+from scipy import stats
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+from sklearn.utils import shuffle
+from sklearn.model_selection import StratifiedShuffleSplit
+from sklearn.compose import ColumnTransformer
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.impute import SimpleImputer
+from sklearn.preprocessing import FunctionTransformer
+from sklearn.base import BaseEstimator, TransformerMixin
+from sklearn.linear_model import LinearRegression
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.linear_model import SGDClassifier
+from sklearn.svm import SVR
+from sklearn.model_selection import GridSearchCV
+from sklearn.model_selection import RandomizedSearchCV
+from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import cross_val_predict
+from sklearn.metrics import confusion_matrix
+from sklearn.metrics import precision_score, recall_score
+from sklearn.metrics import f1_score
+from sklearn.metrics import precision_recall_curve
+from sklearn.metrics import roc_curve
+from sklearn.metrics import roc_auc_score
+from sklearn.ensemble import RandomForestClassifier
+# to make this notebook's output stable across runs
+np.random.seed(42)
+​
+# To plot pretty figures
+%matplotlib inline
+​
+mpl.rc('axes', labelsize=14)
+mpl.rc('xtick', labelsize=12)
+mpl.rc('ytick', labelsize=12)
+​
+# Where to save the figures
+PROJECT_ROOT_DIR = "/Users/katelassiter/Downloads/ML/HeartPredict"
+IMAGES_PATH = os.path.join(PROJECT_ROOT_DIR, "images")
+os.makedirs(IMAGES_PATH, exist_ok=True)
+​
+def save_fig(fig_id, tight_layout=True, fig_extension="png", resolution=300):
+    path = os.path.join(IMAGES_PATH, fig_id + "." + fig_extension)
+    print("Saving figure", fig_id)
+    if tight_layout:
+        plt.tight_layout()
+    plt.savefig(path, format=fig_extension, dpi=resolution)
+np.random.seed(42)
+data=pd.read_csv("/Users/katelassiter/Downloads/heart_failure_clinical_records_dataset.csv")
+%matplotlib inline
+data.hist(bins=50, figsize=(20,15))
+save_fig("attribute_histogram_plots")
+plt.show()
+Saving figure attribute_histogram_plots
+
+#shuffle because some algorithms need it
+data=shuffle(data)
+#need to find out important independent varibales so can decide if need stratified sampling
+#class imalance using stratefied sampling
+split = StratifiedShuffleSplit(n_splits=1, test_size=0.3, random_state=42)
+for train_index, test_index in split.split(data, data["DEATH_EVENT"]):
+    strat_train_set = data.loc[train_index]
+    strat_test_set = data.loc[test_index] #class imbalance we will want to use stratiffied sampling
+strat_test_set=strat_test_set.reset_index()
+strat_train_set.DEATH_EVENT.value_counts()
+len(strat_test_set)
+90
+num_pipeline = Pipeline([
+        #('imputer', SimpleImputer(strategy="median")),
+        #('attribs_adder', FunctionTransformer(add_extra_features, validate=False)),
+        ('std_scaler', StandardScaler()),
+    ])
+​
+full_pipeline = ColumnTransformer([
+        ("num", num_pipeline, strat_train_set.drop("DEATH_EVENT", axis=1).columns)
+    ])
+​
+heart_prepared = full_pipeline.fit_transform(strat_train_set)
+def plot_precision_recall_vs_threshold(precisions, recalls, thresholds,main_title):
+    plt.plot(thresholds, precisions[:-1], "b--", label="Precision", linewidth=2)
+    plt.plot(thresholds, recalls[:-1], "g-", label="Recall", linewidth=2)
+    plt.xlabel("Threshold", fontsize=16)
+    plt.legend(loc="upper left", fontsize=16)
+    plt.ylim([0, 1])
+    plt.title(main_title)
+def plot_precision_vs_recall(precisions, recalls,main_title):
+    plt.plot(recalls, precisions, "b-", linewidth=2)
+    plt.xlabel("Recall", fontsize=16)
+    plt.ylabel("Precision", fontsize=16)
+    plt.axis([0, 1, 0, 1])
+    plt.title(main_title)
+def plot_roc_curve(fpr, tpr, label=None,main_title=""):
+    plt.plot(fpr, tpr, linewidth=2, label=label)
+    plt.plot([0, 1], [0, 1], 'k--')
+    plt.axis([0, 1, 0, 1])
+    plt.xlabel('False Positive Rate', fontsize=16)
+    plt.ylabel('True Positive Rate', fontsize=16)
+    plt.title(main_title)
+
+def plot_roc_curve(fpr, tpr, label=None,main_title=""):
+    plt.plot(fpr, tpr, linewidth=2, label=label)
+    plt.plot([0, 1], [0, 1], 'k--')
+    plt.axis([0, 1, 0, 1])
+    plt.xlabel('False Positive Rate', fontsize=16)
+    plt.ylabel('True Positive Rate', fontsize=16)
+    plt.title(main_title)
+​
+####YOU would LIKE TO OPTIMIZE THIS IN THE FUTURE
+#models=["lin_reg","svm_reg"]
+#for model in models:
+#    print(model)
+#    foo="self."+model
+ #   print(foo)
+ #   exec(foo + " = 'something else'")
+#self.lin_reg=self.lin_reg.fit(X,y)
+#>>> foo = "bar"
+#X>>> exec(foo + " = 'something else'")
+def confidence_interval(model,confidence,X,y):
+    squared_errors = (model.predict(X) - y) ** 2
+    mean = squared_errors.mean()
+    m = len(squared_errors)
+    CI=np.sqrt(stats.t.interval(confidence, m - 1,
+                                 loc=np.mean(squared_errors),
+                                 scale=stats.sem(squared_errors)))
+    return(CI)
+        
+class ModelFinder(BaseEstimator, TransformerMixin):
+    def __init__(self, cv=5, n_estimators=100,prob_type="Regression"): # no *args or **kwargs
+        self.cv=cv
+        self.n_estimators=n_estimators
+        self.RSMEs=[]
+        self.lin_reg=LinearRegression()
+        self.lin_reg.t_interval=False
+        self.svm_reg = SVR(kernel="linear")
+        self.svm_reg.t_interval=False
+        self.tree_reg=DecisionTreeRegressor(random_state=42)
+        self.tree_reg.t_interval=False
+        self.forest_reg = RandomForestRegressor(n_estimators=self.n_estimators, random_state=42)
+        self.max_iter=5
+        self.sgd_class=SGDClassifier(max_iter=self.max_iter, tol=-np.infty, random_state=42)
+        self.prob_type=prob_type
+        self.accuracies=[]
+        self.sgd_class.accuracies=[]
+        self.sgd_class.confusion_matrix=False
+        self.sgd_class.precision=False
+        self.sgd_class.recall=False
+        self.sgd_class.f1=False
+        self.sgd_class.show=False
+        self.sgd_class.show_plot=False
+        self.sgd_class.y_scores=False
+        self.sgd_class.roc_score=False
+    def pick_model(self, X, y):
+        if self.prob_type == "Regression":
+            ################################################
+            #linear regression
+            #models=[lin_reg,svm_reg]
+            #for model in models:
+              #  foo="self."+model
+              #  exec(foo + " = ")
+              #  self.lin_reg=self.lin_reg.fit(X,y)
+            param_grid = [{'n_estimators': [3, 10, 30], 'max_features': [2, 4, 6, 8]},
+            {'bootstrap': [False], 'n_estimators': [3, 10], 'max_features': [2, 3, 4]},]
+            param_distribs = {
+            'n_estimators': randint(low=1, high=200),
+            'max_features': randint(low=1, high=8),}
+            self.lin_reg=self.lin_reg.fit(X,y)
+            lin_scores = cross_val_score(self.lin_reg, X, y,scoring="neg_mean_squared_error", cv=self.cv)
+            lin_rmse_scores = np.sqrt(-lin_scores)
+            self.RSMEs=self.RSMEs+[lin_rmse_scores.mean()]
+            self.lin_reg.t_interval=confidence_interval(self.lin_reg,0.95,X,y)
+            #return(display_scores(lin_rmse_scores))
+            ################################################
+            #SVM
+            self.svm_reg=self.svm_reg.fit(X,y)
+            svm_scores = cross_val_score(self.svm_reg, X,y, scoring="neg_mean_squared_error", cv=self.cv)
+            svm_rmse_scores = np.sqrt(-svm_scores)
+            self.RSMEs=self.RSMEs+[svm_rmse_scores.mean()]
+            self.svm_reg.t_interval=confidence_interval(self.svm_reg,0.95,X,y)
+            ################################################
+            #decision treee
+            self.tree_reg=self.tree_reg.fit(X,y)
+            scores = cross_val_score(self.tree_reg, X,y,
+                             scoring="neg_mean_squared_error", cv=self.cv)
+            tree_rmse_scores = np.sqrt(-scores)
+            self.RSMEs=self.RSMEs+[tree_rmse_scores.mean()]
+            self.tree_reg.t_interval=confidence_interval(self.tree_reg,0.95,X,y)
+            ################################################
+            #forest
+            self.forest_reg=self.forest_reg.fit(X,y)
+            grid_search = GridSearchCV(self.forest_reg, param_grid, cv=self.cv,
+                               scoring='neg_mean_squared_error', return_train_score=True)
+            grid_search.fit(X,y)
+            cvres = grid_search.cv_results_
+            grid_rsme=min(np.sqrt(-cvres["mean_test_score"]))
+            rnd_search = RandomizedSearchCV(self.forest_reg, param_distributions=param_distribs,
+                                        n_iter=10, cv=self.cv, scoring='neg_mean_squared_error', random_state=42)
+            rnd_search.fit(X,y)
+            cvres = rnd_search.cv_results_
+            rnd_rsme=min(np.sqrt(-cvres["mean_test_score"]))
+            #pick best; random or grid
+            self.RSMEs=self.RSMEs+[min(grid_rsme,rnd_rsme)]
+            self.forest_reg=[grid_search,rnd_search][np.argmin([grid_rsme,rnd_rsme])]
+            ##############################################
+            #pick models
+            models=["Linear Regression",'SVM',"Decision Tree","Random Forest"]
+            zipped_lists = zip(self.RSMEs, models)
+            sorted_pairs = sorted(zipped_lists)
+            tuples = zip(*sorted_pairs)
+            self.RSMEs, models = [ list(tuple) for tuple in  tuples]
+            Result={}
+            for x,y in zip(self.RSMEs,models): Result[y]=x #picks best 4 models
+            ResultTop={}
+            for x,y in zip(self.RSMEs[0:3],models[0:3]): ResultTop[y]=x #picks best 4 models
+            self.RSMEs=Result
+            return(ResultTop)
+        else:
+            #sGD
+            self.sgd_class=self.sgd_class.fit(X,y)
+            self.sgd_class.accuracies=cross_val_score(self.sgd_class, X, y, cv=self.cv, scoring="accuracy")
+            y_train_pred = cross_val_predict(self.sgd_class, X, y, cv=self.cv)
+            self.sgd_class.confusion_matrix=confusion_matrix(y, y_train_pred)
+            self.sgd_class.precision=precision_score(y, y_train_pred)
+            self.sgd_class.recall=recall_score(y, y_train_pred)
+            self.sgd_class.f1=f1_score(y, y_train_pred)
+            self.sgd_class.y_scores = cross_val_predict(self.sgd_class, X, y, cv=self.cv,
+                             method="decision_function")
+            precisions, recalls, thresholds = precision_recall_curve(y, self.sgd_class.y_scores)
+            #Decision threshold
+            plt.figure(figsize=(8, 4))
+            plot_precision_recall_vs_threshold(precisions, recalls, thresholds,"SGD")
+            plt.xlim([-300, 300])
+            save_fig("precision_recall_vs_threshold_plot_sgd")
+            plt.show()
+            #recall vs precision
+            plt.figure(figsize=(8, 6))
+            plot_precision_vs_recall(precisions, recalls,"SGD")
+            save_fig("precision_vs_recall_plot_sgd")
+            plt.show()
+            #roc
+            fpr, tpr, thresholds = roc_curve(y, self.sgd_class.y_scores)
+            plt.figure(figsize=(8, 6))
+            plot_roc_curve(fpr, tpr,'SGD')
+            save_fig("roc_curve_plot_sgd")
+            plt.show()
+            self.sgd_class.roc_score=roc_auc_score(y, self.sgd_class.y_scores)
+            #randome forest
+            self.forest_class = RandomForestClassifier(n_estimators=self.n_estimators, random_state=42)
+            self.forest_class.y_probas = cross_val_predict(self.forest_class, X, y, cv=self.cv,
+                                                method="predict_proba")
+            self.forest_class.y_scores = self.forest_class.y_probas[:, 1] # score = proba of positive class
+            fpr_forest, tpr_forest, thresholds_forest = roc_curve(y,self.forest_class.y_scores)
+            #rOC
+            plt.figure(figsize=(8, 6))
+            plt.plot(fpr, tpr, "b:", linewidth=2, label="SGD")
+            plot_roc_curve(fpr_forest, tpr_forest, "Random Forest")
+            plt.legend(loc="lower right", fontsize=16)
+            save_fig("roc_curve_comparison_plot")
+            plt.show()
+            
+​
+​
+​
+model_selection = ModelFinder(cv=5,prob_type="Classification")
+model_selection.pick_model(heart_prepared,strat_train_set["DEATH_EVENT"])
+​
+Saving figure precision_recall_vs_threshold_plot_sgd
+
+Saving figure precision_vs_recall_plot_sgd
+
+Saving figure roc_curve_plot_sgd
+
+Saving figure roc_curve_comparison_plot
+
+len(strat_train_set[strat_train_set["DEATH_EVENT"]==1])/len(strat_train_set)
+#Because only 30% of observations = 1, says 70% accrate cause alway just guesses no
+#in this case, recall is more impotant than precion, don't matter if we identify few false positive as long as getting 99% of the death event
+#you should prefer the PR curve whenever the positive class is rare or when you care more about the false positives than the false negatives, and the ROC curve otherwise.
+#So we will care about the Roc
+0.3444976076555024
+def ThresholdSGD(y_scores,threshold,y):
+    y_train_pred = (y_scores > threshold)
+    print("Precision:",precision_score(y, y_train_pred))
+    print("Recall:",recall_score(y, y_train_pred))
+    print("f1:",f1_score(y, y_train_pred))
+    
+​
+ThresholdSGD(model_selection.sgd_class.y_scores,-40,strat_train_set["DEATH_EVENT"])
+Precision: 0.5565217391304348
+Recall: 0.8888888888888888
+f1: 0.6844919786096257
+model_selection.sgd_class.roc_score
+0.8287712895377128
+confusion_matrix(strat_train_set["DEATH_EVENT"],model_selection.sgd_class.y_scores)
+---------------------------------------------------------------------------
+ValueError                                Traceback (most recent call last)
+<ipython-input-14-5132207a85d3> in <module>
+----> 1 confusion_matrix(strat_train_set["DEATH_EVENT"],model_selection.sgd_class.y_scores)
+
+~/anaconda3/lib/python3.7/site-packages/sklearn/metrics/classification.py in confusion_matrix(y_true, y_pred, labels, sample_weight)
+    251 
+    252     """
+--> 253     y_type, y_true, y_pred = _check_targets(y_true, y_pred)
+    254     if y_type not in ("binary", "multiclass"):
+    255         raise ValueError("%s is not supported" % y_type)
+
+~/anaconda3/lib/python3.7/site-packages/sklearn/metrics/classification.py in _check_targets(y_true, y_pred)
+     79     if len(y_type) > 1:
+     80         raise ValueError("Classification metrics can't handle a mix of {0} "
+---> 81                          "and {1} targets".format(type_true, type_pred))
+     82 
+     83     # We can't have more than one value on y_type => The set is no more needed
+
+ValueError: Classification metrics can't handle a mix of binary and continuous targets
+
+model_selection.sgd_class.confusion_matrix
+array([[112,  25],
+       [ 28,  44]])
+plt.matshow(model_selection.sgd_class.confusion_matrix, cmap=plt.cm.gray)
+save_fig("confusion_matrix_plot", tight_layout=False)
+plt.show()
+Saving figure confusion_matrix_plot
+
+row_sums = model_selection.sgd_class.confusion_matrix.sum(axis=1, keepdims=True)
+norm_conf_mx = model_selection.sgd_class.confusion_matrix / row_sums
+row_sums
+norm_conf_mx
+array([[0.81751825, 0.18248175],
+       [0.38888889, 0.61111111]])
+#Now let’s fill the diagonal with zeros to keep only the errors
+np.fill_diagonal(norm_conf_mx, 0)
+plt.matshow(norm_conf_mx, cmap=plt.cm.gray)
+save_fig("confusion_matrix_errors_plot", tight_layout=False)
+plt.show()
+Saving figure confusion_matrix_errors_plot
+
+#np.c_ 
+## both are 2 dimensional array
+#a = array([[1, 2, 3], [4, 5, 6]])
+#b = array([[7, 8, 9], [10, 11, 12]])
+#1st item: [1,2,3] + [7,8,9] = [1,2,3,7,8,9]
+#2nd item: [4,5,6] + [10,11,12] = [4,5,6,10,11,12]
