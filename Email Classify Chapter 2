@@ -1,0 +1,158 @@
+Jupyter Notebook
+Email Classify Chapter 2
+Last Checkpoint: 08/20/2021
+(autosaved)
+Current Kernel Logo
+Python 3 
+File
+Edit
+View
+Insert
+Cell
+Kernel
+Widgets
+Help
+
+Code
+import os
+import tarfile
+import urllib.request
+import email
+import email.policy
+from sklearn.utils import shuffle
+import random
+import numpy as np
+from sklearn.model_selection import train_test_split
+import itertools
+from bs4 import BeautifulSoup
+​
+DOWNLOAD_ROOT = "http://spamassassin.apache.org/old/publiccorpus/"
+HAM_URL = DOWNLOAD_ROOT + "20030228_easy_ham.tar.bz2"
+SPAM_URL = DOWNLOAD_ROOT + "20030228_spam.tar.bz2"
+SPAM_PATH = os.path.join("datasets", "spam")
+​
+def fetch_spam_data(spam_url=SPAM_URL, spam_path=SPAM_PATH):
+    if not os.path.isdir(spam_path):
+        os.makedirs(spam_path)
+    for filename, url in (("ham.tar.bz2", HAM_URL), ("spam.tar.bz2", SPAM_URL)):
+        path = os.path.join(spam_path, filename)
+        if not os.path.isfile(path):
+            urllib.request.urlretrieve(url, path)
+        tar_bz2_file = tarfile.open(path)
+        tar_bz2_file.extractall(path=SPAM_PATH)
+        tar_bz2_file.close()
+fetch_spam_data()
+HAM_DIR = os.path.join(SPAM_PATH, "easy_ham")
+SPAM_DIR = os.path.join(SPAM_PATH, "spam")
+ham_filenames = [name for name in sorted(os.listdir(HAM_DIR)) if len(name) > 20]
+spam_filenames = [name for name in sorted(os.listdir(SPAM_DIR)) if len(name) > 20]
+def load_email(is_spam, filename, spam_path=SPAM_PATH):
+    directory = "spam" if is_spam else "easy_ham"
+    with open(os.path.join(spam_path, directory, filename), "rb") as f:
+        return email.parser.BytesParser(policy=email.policy.default).parse(f)
+    
+ham_emails = [load_email(is_spam=False, filename=name) for name in ham_filenames]
+spam_emails = [load_email(is_spam=True, filename=name) for name in spam_filenames]
+​
+X=np.array(ham_emails + spam_emails)
+y=np.append(np.repeat(0,len(ham_emails)),np.repeat(1,len(spam_emails)))
+zipped_lists = list(zip(X,y))
+random.shuffle(zipped_lists)
+X, y = zip(*zipped_lists)
+x_train, x_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+from collections import Counter
+​
+def count_structures(emails):
+    structures = Counter()
+    for email in emails:
+        structure = structure_email(email)
+        structures[structure] += 1
+    return structures
+​
+def structure_email(email):
+    if isinstance(email, str): return email
+    payload = email.get_payload()
+    if isinstance(payload, list): return "multipart({})".format(", ".join(list(map(lambda x: structure_email(x),payload))))
+    else: return email.get_content_type()
+​
+count_structures(ham_emails).most_common()
+​
+[('text/plain', 2408),
+ ('multipart(text/plain, application/pgp-signature)', 66),
+ ('multipart(text/plain, text/html)', 8),
+ ('multipart(text/plain, text/plain)', 4),
+ ('multipart(text/plain)', 3),
+ ('multipart(text/plain, application/octet-stream)', 2),
+ ('multipart(text/plain, text/enriched)', 1),
+ ('multipart(text/plain, application/ms-tnef, text/plain)', 1),
+ ('multipart(multipart(text/plain, text/plain, text/plain), application/pgp-signature)',
+  1),
+ ('multipart(text/plain, video/mng)', 1),
+ ('multipart(text/plain, multipart(text/plain))', 1),
+ ('multipart(text/plain, application/x-pkcs7-signature)', 1),
+ ('multipart(text/plain, multipart(text/plain, text/plain), text/rfc822-headers)',
+  1),
+ ('multipart(text/plain, multipart(text/plain, text/plain), multipart(multipart(text/plain, application/x-pkcs7-signature)))',
+  1),
+ ('multipart(text/plain, application/x-java-applet)', 1)]
+indeces=list(filter(lambda x: structure_email(x_train[x]) == "text/html" and y_train[x]==1,range(0,len(x_train))))
+html_emails = list(itertools.compress(x_train, indeces))
+def email_to_text(email):
+    html = None
+    for part in email.walk():
+        ctype = part.get_content_type()
+        if not ctype in ("text/plain", "text/html"):
+            continue
+        try:
+            content = part.get_content()
+        except: # in case of encoding issues
+            content = str(part.get_payload())
+        if ctype == "text/plain":
+            return content
+        else:
+            html = content
+    if html:
+        return html_to_plain_text(html)
+​
+#Types=list(map(lambda x: x.get_content_type(),html_emails))    
+def content_or_payload(email):
+        try: content = email.get_content()
+        except: content = str(email.get_payload())
+        try:
+            soup = BeautifulSoup(content)
+            return soup.get_text()
+        except: return content
+​
+Parsed=list(map(lambda x: content_or_payload(x),html_emails))
+#it fucking aborted and deleted stuff, now i don't know if beatiful soup pul working right seems to have additonal 
+#tags it did not have b4 like urL; 
+try:
+    import nltk
+
+    stemmer = nltk.PorterStemmer()
+    for word in ("Computations", "Computation", "Computing", "Computed", "Compute", "Compulsive"):
+        print(word, "=>", stemmer.stem(word))
+except ImportError:
+    print("Error: stemming requires the NLTK module.")
+    stemmer = None
+  
+try:
+    import nltk
+​
+    stemmer = nltk.PorterStemmer()
+    for word in ("Computations", "Computation", "Computing", "Computed", "Compute", "Compulsive"):
+        print(word, "=>", stemmer.stem(word))
+except ImportError:
+    print("Error: stemming requires the NLTK module.")
+    stemmer = None
+  
+print(Parsed[0])
+URL: http://www.newsisfree.com/click/-1,8381145,215/
+Date: 2002-09-30T03:04:58+01:00
+
+*Arts:* Fourth art raid on philanthropist's home once targeted by the IRA and 
+Dublin gangster Martin Cahill.
+
+
+
+​
