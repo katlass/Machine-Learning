@@ -1,0 +1,210 @@
+Jupyter Notebook
+ML Custom Functions-Copy1
+Last Checkpoint: 08/19/2021
+(autosaved)
+Current Kernel Logo
+Python 3 
+File
+Edit
+View
+Insert
+Cell
+Kernel
+Widgets
+Help
+
+Code
+# To support both python 2 and python 3
+from __future__ import division, print_function, unicode_literals
+​
+# Common imports
+import numpy as np
+import os
+import pandas as pd
+​
+# to make this notebook's output stable across runs
+np.random.seed(42)
+​
+# To plot pretty figures
+%matplotlib inline
+import matplotlib as mpl
+import matplotlib.pyplot as plt
+mpl.rc('axes', labelsize=14)
+mpl.rc('xtick', labelsize=12)
+mpl.rc('ytick', labelsize=12)
+​
+# Where to save the figures
+PROJECT_ROOT_DIR = "/Users/katelassiter/Downloads/ML/HeartPredict"
+IMAGES_PATH = os.path.join(PROJECT_ROOT_DIR, "images")
+os.makedirs(IMAGES_PATH, exist_ok=True)
+​
+def save_fig(fig_id, tight_layout=True, fig_extension="png", resolution=300):
+    path = os.path.join(IMAGES_PATH, fig_id + "." + fig_extension)
+    print("Saving figure", fig_id)
+    if tight_layout:
+        plt.tight_layout()
+    plt.savefig(path, format=fig_extension, dpi=resolution)
+#check for null values, returns columns where they are or False
+def NULLChecker(df,res=False):
+    df=df.replace(r'^\s*$', np.nan, regex=True)
+    res1=df.isnull().values.any()
+    if res1 == True:res=df.columns[housing.isna().any()].tolist()
+    return(res)     
+​
+#returns Null rows
+def NullRows(df,res=False):
+    df=df[df.isnull().any(axis=1)].head()
+    if len(df)>0:res=df
+    return(res)
+def display_scores(scores):
+    print("Scores:", scores)
+    print("Mean:", scores.mean())
+    print("Standard deviation:", scores.std())
+​
+class DataCleaner():
+    def __init__(self, find_null_columns = True): # no *args or **kwargs
+        self.find_null_columns = find_null_columns
+    def NULLChecker(df,res=False):
+    df=df.replace(r'^\s*$', np.nan, regex=True)
+    res1=df.isnull().values.any()
+    if res1 == True:res=df.columns[housing.isna().any()].tolist()
+    return(res)  
+   
+#from sklearn.base import BaseEstimator, TransformerMixin
+#class ModelFinder(BaseEstimator, TransformerMixin):
+ #   def __init__(self, lin_reg = False): # no *args or **kwargs
+ #       self.lin_reg = lin_reg
+  #  def fit(self, X, y=None):
+  #      return self  # nothing else to do
+  #  def transform(self, X, y):
+  #      if self.lin_reg:     
+  #          model_predictions = lin_reg.predict(X)
+   #         lin_mse = mean_squared_error(y, model_predictions)
+   #         lin_rmse = np.sqrt(lin_mse)
+   #         return(lin_rmse)
+​
+​
+#attr_adder = ModelFinder(lin_reg=True)
+#housing_extra_attribs = attr_adder.transform(heart_prepared,heart["DEATH_EVENT"])
+---------------------------------------------------------------------------
+NameError                                 Traceback (most recent call last)
+<ipython-input-2-404ac5aed196> in <module>
+     14 
+     15 attr_adder = ModelFinder(lin_reg=True)
+---> 16 housing_extra_attribs = attr_adder.transform(heart_prepared,heart["DEATH_EVENT"])
+
+NameError: name 'heart_prepared' is not defined
+
+def plot_digit(data):
+    image = data.reshape(28, 28)
+    plt.imshow(image, cmap = mpl.cm.binary,
+               interpolation="nearest")
+    plt.axis("off")
+def plot_digits(instances, images_per_row=10, **options):
+    size = 28
+    images_per_row = min(len(instances), images_per_row)
+    images = [instance.reshape(size,size) for instance in instances]
+    n_rows = (len(instances) - 1) // images_per_row + 1
+    row_images = []
+    n_empty = n_rows * images_per_row - len(instances)
+    images.append(np.zeros((size, size * n_empty)))
+    for row in range(n_rows):
+        rimages = images[row * images_per_row : (row + 1) * images_per_row]
+        row_images.append(np.concatenate(rimages, axis=1))
+    image = np.concatenate(row_images, axis=0)
+    plt.imshow(image, cmap = mpl.cm.binary, **options)
+    plt.axis("off")
+from scipy import stats
+from sklearn.base import BaseEstimator, TransformerMixin
+def confidence_interval(model,confidence,X,y):
+    squared_errors = (model.predict(X) - y) ** 2
+    mean = squared_errors.mean()
+    m = len(squared_errors)
+    CI=np.sqrt(stats.t.interval(confidence, m - 1,
+                                 loc=np.mean(squared_errors),
+                                 scale=stats.sem(squared_errors)))
+    return(CI)
+        
+class ModelFinder(BaseEstimator, TransformerMixin):
+    param_grid = [{'n_estimators': [3, 10, 30], 'max_features': [2, 4, 6, 8]},
+    {'bootstrap': [False], 'n_estimators': [3, 10], 'max_features': [2, 3, 4]},]
+    param_distribs = {
+        'n_estimators': randint(low=1, high=200),
+        'max_features': randint(low=1, high=8),}
+    def __init__(self, cv=5, n_estimators=100): # no *args or **kwargs
+        self.cv=cv
+        self.n_estimators=n_estimators
+        self.RSMEs=[]
+        self.lin_reg=LinearRegression()
+        self.lin_reg.t_interval=False
+        self.svm_reg = SVR(kernel="linear")
+        self.svm_reg.t_interval=False
+        self.tree_reg=DecisionTreeRegressor(random_state=42)
+        self.tree_reg.t_interval=False
+        self.forest_reg = RandomForestRegressor(n_estimators=self.n_estimators, random_state=42)
+    def pick_model(self, X, y):
+        ################################################
+        #linear regression
+        #models=[lin_reg,svm_reg]
+        #for model in models:
+          #  foo="self."+model
+          #  exec(foo + " = ")
+          #  self.lin_reg=self.lin_reg.fit(X,y)
+        self.lin_reg=self.lin_reg.fit(X,y)
+        lin_scores = cross_val_score(self.lin_reg, X, y,scoring="neg_mean_squared_error", cv=self.cv)
+        lin_rmse_scores = np.sqrt(-lin_scores)
+        self.RSMEs=self.RSMEs+[lin_rmse_scores.mean()]
+        self.lin_reg.t_interval=confidence_interval(self.lin_reg,0.95,X,y)
+        #return(display_scores(lin_rmse_scores))
+        ################################################
+        #SVM
+        self.svm_reg=self.svm_reg.fit(X,y)
+        svm_scores = cross_val_score(self.svm_reg, X,y, scoring="neg_mean_squared_error", cv=self.cv)
+        svm_rmse_scores = np.sqrt(-svm_scores)
+        self.RSMEs=self.RSMEs+[svm_rmse_scores.mean()]
+        self.svm_reg.t_interval=confidence_interval(self.svm_reg,0.95,X,y)
+        ################################################
+        #decision treee
+        self.tree_reg=self.tree_reg.fit(X,y)
+        scores = cross_val_score(self.tree_reg, X,y,
+                         scoring="neg_mean_squared_error", cv=self.cv)
+        tree_rmse_scores = np.sqrt(-scores)
+        self.RSMEs=self.RSMEs+[tree_rmse_scores.mean()]
+        self.tree_reg.t_interval=confidence_interval(self.tree_reg,0.95,X,y)
+        ################################################
+        #forest
+        self.forest_reg=self.forest_reg.fit(X,y)
+        grid_search = GridSearchCV(self.forest_reg, param_grid, cv=self.cv,
+                           scoring='neg_mean_squared_error', return_train_score=True)
+        grid_search.fit(X,y)
+        cvres = grid_search.cv_results_
+        grid_rsme=min(np.sqrt(-cvres["mean_test_score"]))
+        rnd_search = RandomizedSearchCV(self.forest_reg, param_distributions=param_distribs,
+                                    n_iter=10, cv=self.cv, scoring='neg_mean_squared_error', random_state=42)
+        rnd_search.fit(X,y)
+        cvres = rnd_search.cv_results_
+        rnd_rsme=min(np.sqrt(-cvres["mean_test_score"]))
+        #pick best; random or grid
+        self.RSMEs=self.RSMEs+[min(grid_rsme,rnd_rsme)]
+        self.forest_reg=[grid_search,rnd_search][np.argmin([grid_rsme,rnd_rsme])]
+        ################################################
+        #pick models
+        models=["Linear Regression",'SVM',"Decision Tree","Random Forest"]
+        zipped_lists = zip(self.RSMEs, models)
+        sorted_pairs = sorted(zipped_lists)
+        tuples = zip(*sorted_pairs)
+        self.RSMEs, models = [ list(tuple) for tuple in  tuples]
+        Result={}
+        for x,y in zip(self.RSMEs,models): Result[y]=x #picks best 4 models
+        ResultTop={}
+        for x,y in zip(self.RSMEs[0:3],models[0:3]): ResultTop[y]=x #picks best 4 models
+        self.RSMEs=Result
+        return(ResultTop)
+​
+​
+def plot_confusion_matrix(matrix):
+    """If you prefer color and a colorbar"""
+    fig = plt.figure(figsize=(8,8))
+    ax = fig.add_subplot(111)
+    cax = ax.matshow(matrix)
+    fig.colorbar(cax)
