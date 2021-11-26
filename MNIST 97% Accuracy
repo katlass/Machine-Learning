@@ -1,0 +1,55 @@
+Jupyter Notebook
+MNIST 97% Accuracy
+Last Checkpoint: 08/19/2021
+(autosaved)
+Current Kernel Logo
+Python 3 
+File
+Edit
+View
+Insert
+Cell
+Kernel
+Widgets
+Help
+
+Code
+#doing k neighbors to get 97% accurace
+# To support both python 2 and python 3
+from __future__ import division, print_function, unicode_literals
+import numpy as np
+import os
+import tensorflow as tf
+from sklearn.model_selection import cross_val_score
+from sklearn.model_selection import cross_val_predict
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.model_selection import GridSearchCV
+from sklearn.metrics import accuracy_score
+np.random.seed(42)
+(trainX, trainY), (testX, testY) = tf.keras.datasets.mnist.load_data()
+trainX=trainX.reshape(-1,784)
+testX=testX.reshape(-1,784)
+#data=shuffle(data)
+​
+param_grid = [{'weights': ["uniform", "distance"], 'n_neighbors': [3, 4, 5]}]
+model = KNeighborsClassifier()
+grid_search =GridSearchCV(model,param_grid,cv=5, scoring="accuracy", verbose=3, n_jobs=-1)
+grid_search.fit(trainX,trainY)
+Fitting 5 folds for each of 6 candidates, totalling 30 fits
+[Parallel(n_jobs=-1)]: Using backend LokyBackend with 4 concurrent workers.
+[Parallel(n_jobs=-1)]: Done  30 out of  30 | elapsed: 666.1min finished
+GridSearchCV(cv=5, error_score='raise-deprecating',
+             estimator=KNeighborsClassifier(algorithm='auto', leaf_size=30,
+                                            metric='minkowski',
+                                            metric_params=None, n_jobs=None,
+                                            n_neighbors=5, p=2,
+                                            weights='uniform'),
+             iid='warn', n_jobs=-1,
+             param_grid=[{'n_neighbors': [3, 4, 5],
+                          'weights': ['uniform', 'distance']}],
+             pre_dispatch='2*n_jobs', refit=True, return_train_score=False,
+             scoring='accuracy', verbose=3)
+grid_search.best_params_
+grid_search.best_score_
+y_pred = grid_search.predict(testX)
+accuracy_score(testY, y_pred)
