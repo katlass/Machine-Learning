@@ -1,19 +1,4 @@
-Jupyter Notebook
-ML Custom Functions-Copy1
-Last Checkpoint: 08/19/2021
-(autosaved)
-Current Kernel Logo
-Python 3 
-File
-Edit
-View
-Insert
-Cell
-Kernel
-Widgets
-Help
 
-Code
 # To support both python 2 and python 3
 from __future__ import division, print_function, unicode_literals
 ​
