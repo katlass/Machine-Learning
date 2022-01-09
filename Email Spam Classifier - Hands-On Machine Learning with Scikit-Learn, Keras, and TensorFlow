@@ -1,19 +1,6 @@
 Jupyter Notebook
 Email Classify Chapter 2
-Last Checkpoint: 08/20/2021
-(autosaved)
-Current Kernel Logo
-Python 3 
-File
-Edit
-View
-Insert
-Cell
-Kernel
-Widgets
-Help
 
-Code
 import os
 import tarfile
 import urllib.request
@@ -124,7 +111,6 @@ def content_or_payload(email):
         except: return content
 ​
 Parsed=list(map(lambda x: content_or_payload(x),html_emails))
-#it fucking aborted and deleted stuff, now i don't know if beatiful soup pul working right seems to have additonal 
 #tags it did not have b4 like urL; 
 try:
     import nltk
@@ -147,12 +133,6 @@ except ImportError:
     stemmer = None
   
 print(Parsed[0])
-URL: http://www.newsisfree.com/click/-1,8381145,215/
-Date: 2002-09-30T03:04:58+01:00
-
-*Arts:* Fourth art raid on philanthropist's home once targeted by the IRA and 
-Dublin gangster Martin Cahill.
-
 
 
 ​
