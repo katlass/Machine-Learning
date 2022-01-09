@@ -131,7 +131,7 @@ class ModelFinder(BaseEstimator, TransformerMixin):
         tree_rmse_scores = np.sqrt(-scores)
         self.RSMEs=self.RSMEs+[tree_rmse_scores.mean()]
         self.tree_reg.t_interval=confidence_interval(self.tree_reg,0.95,X,y)
-        ################################################
+        #################################################
         #forest
         self.forest_reg=self.forest_reg.fit(X,y)
         grid_search = GridSearchCV(self.forest_reg, param_grid, cv=self.cv,
