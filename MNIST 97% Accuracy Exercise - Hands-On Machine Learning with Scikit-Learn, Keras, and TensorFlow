@@ -1,19 +1,6 @@
 Jupyter Notebook
 MNIST 97% Accuracy
-Last Checkpoint: 08/19/2021
-(autosaved)
-Current Kernel Logo
-Python 3 
-File
-Edit
-View
-Insert
-Cell
-Kernel
-Widgets
-Help
 
-Code
 #doing k neighbors to get 97% accurace
 # To support both python 2 and python 3
 from __future__ import division, print_function, unicode_literals
