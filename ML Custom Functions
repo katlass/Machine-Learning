@@ -55,31 +55,6 @@ class DataCleaner():
     if res1 == True:res=df.columns[housing.isna().any()].tolist()
     return(res)  
    
-#from sklearn.base import BaseEstimator, TransformerMixin
-#class ModelFinder(BaseEstimator, TransformerMixin):
- #   def __init__(self, lin_reg = False): # no *args or **kwargs
- #       self.lin_reg = lin_reg
-  #  def fit(self, X, y=None):
-  #      return self  # nothing else to do
-  #  def transform(self, X, y):
-  #      if self.lin_reg:     
-  #          model_predictions = lin_reg.predict(X)
-   #         lin_mse = mean_squared_error(y, model_predictions)
-   #         lin_rmse = np.sqrt(lin_mse)
-   #         return(lin_rmse)
-​
-​
-#attr_adder = ModelFinder(lin_reg=True)
-#housing_extra_attribs = attr_adder.transform(heart_prepared,heart["DEATH_EVENT"])
----------------------------------------------------------------------------
-NameError                                 Traceback (most recent call last)
-<ipython-input-2-404ac5aed196> in <module>
-     14 
-     15 attr_adder = ModelFinder(lin_reg=True)
----> 16 housing_extra_attribs = attr_adder.transform(heart_prepared,heart["DEATH_EVENT"])
-
-NameError: name 'heart_prepared' is not defined
-
 def plot_digit(data):
     image = data.reshape(28, 28)
     plt.imshow(image, cmap = mpl.cm.binary,
