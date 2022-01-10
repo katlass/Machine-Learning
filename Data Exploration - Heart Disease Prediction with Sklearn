@@ -1,20 +1,4 @@
-Jupyter Notebook
-Explore Hearts
-Last Checkpoint: 06/30/2021
-(autosaved)
-Current Kernel Logo
-Python 3 
-File
-Edit
-View
-Insert
-Cell
-Kernel
-Widgets
-Help
-
-Code
-Setup
+#Last Checkpoint: 06/30/2021
 
 # To support both python 2 and python 3
 from __future__ import division, print_function, unicode_literals
@@ -46,36 +30,7 @@ def save_fig(fig_id, tight_layout=True, fig_extension="png", resolution=300):
     if tight_layout:
         plt.tight_layout()
     plt.savefig(path, format=fig_extension, dpi=resolution)
-# To support both python 2 and python 3
-from __future__ import division, print_function, unicode_literals
-​
-# Common imports
-import numpy as np
-import os
-import pandas as pd
-​
-# to make this notebook's output stable across runs
-np.random.seed(42)
-​
-# To plot pretty figures
-%matplotlib inline
-import matplotlib as mpl
-import matplotlib.pyplot as plt
-mpl.rc('axes', labelsize=14)
-mpl.rc('xtick', labelsize=12)
-mpl.rc('ytick', labelsize=12)
-​
-# Where to save the figures
-PROJECT_ROOT_DIR = "/Users/katelassiter/Downloads/ML/HeartPredict"
-IMAGES_PATH = os.path.join(PROJECT_ROOT_DIR, "images")
-os.makedirs(IMAGES_PATH, exist_ok=True)
-​
-def save_fig(fig_id, tight_layout=True, fig_extension="png", resolution=300):
-    path = os.path.join(IMAGES_PATH, fig_id + "." + fig_extension)
-    print("Saving figure", fig_id)
-    if tight_layout:
-        plt.tight_layout()
-    plt.savefig(path, format=fig_extension, dpi=resolution)
+
 # to make this notebook's output identical at every run
 np.random.seed(42)
 data=pd.read_csv("/Users/katelassiter/Downloads/heart_failure_clinical_records_dataset.csv")
@@ -122,7 +77,7 @@ min	40.000000	0.000000	23.000000	0.000000	14.000000	0.000000	25100.000000	0.5000
 50%	60.000000	0.000000	250.000000	0.000000	38.000000	0.000000	262000.000000	1.10000	137.000000	1.000000	0.00000	115.000000	0.00000
 75%	70.000000	1.000000	582.000000	1.000000	45.000000	1.000000	303500.000000	1.40000	140.000000	1.000000	1.00000	203.000000	1.00000
 max	95.000000	1.000000	7861.000000	1.000000	80.000000	1.000000	850000.000000	9.40000	148.000000	1.000000	1.00000	285.000000	1.00000
-%matplotlib inline
+
 import matplotlib.pyplot as plt
 data.hist(bins=50, figsize=(20,15))
 save_fig("attribute_histogram_plots")
