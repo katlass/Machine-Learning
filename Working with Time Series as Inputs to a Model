@@ -1,0 +1,244 @@
+#Audio data, vizualize it
+Index=np.arange(audio.shape[-1])
+Time=Index/sfrequency
+fig,ax = plt.subplots()
+ax.plot=(Time,audio)
+
+#like min, max, avg can be used as feature for our model
+print(audio.shape)
+>>>(#files,time)
+means=np.mean(audio,axis=-1)
+max=np.max(audio,axis=-1)
+std=np.std(audio,axis=-1)
+print(means.shape)
+>>>(#files,)
+#-1 means we collapse across the last dimension, which is time
+
+#-------------------------------------------------------------------------
+#Preparing your data for scikit-learn
+#the correct shape is always samples by features i.e y by Xs
+from sklearn.svm import LinearSVC
+#means have been reshaped to work with sklearn
+X=np.column_stack([means, max,std])
+#column stack allows you to stack 1D arrays by turning them into the columns of a 2-D array
+y=labels.reshape([-1,1])
+#labels array is one dimensional so we reshape it so that it has 2 dimensions
+model=LinearSVC()
+model.fit(X,y)
+#Now we will score the classifier
+from sklearn.metrics import accuracy_score
+Yhats=model.predict(X_test)
+#if you wanted to do it manually 
+PercentScore=sum(Yhats==labels_test)/len(labels_test)
+#whats labels_test? i guess it is the total number of test samples
+#OR
+PercentScore=accuracy_score(labels_test,Yhats)
+#-------------------------------------------------------------------------
+#Start with perhaps the simplest classification technique: averaging across dimensions of a dataset and visually inspecting the result.
+Using the heartbeat data described in the last chapter. Some recordings are normal heartbeat activity, while others are abnormal activity. spot the difference.
+fig, axs = plt.subplots(3, 2, figsize=(15, 7), sharex=True, sharey=True)
+print(len(normal))
+# Calculate the time array
+time = np.arange(0,len(normal)) /sfreq
+
+# Stack the normal/abnormal audio so you can loop and plot
+stacked_audio = np.hstack([normal,abnormal]).T
+
+# Loop through each audio file / ax object and plot
+# .T.ravel() transposes the array, then unravels it into a 1-D vector for looping
+for iaudio, ax in zip(stacked_audio, axs.T.ravel()):
+    ax.plot(time, iaudio)
+show_plot_and_make_titles()
+#-------------------------------------------------------------------------
+#Invariance in time
+#While you should always start by visualizing your raw data, this is often uninformative when it comes to discriminating between two classes of data points. Data is usually noisy or exhibits complex patterns that aren't discoverable by the naked eye.
+Another common technique to find simple differences between two sets of data is to average across multiple instances of the same class. This may remove noise and reveal underlying patterns (or, it may not).
+#average across many instances of each class of heartbeat sound.
+# Average across the audio files of each DataFrame
+mean_normal = np.mean(normal, axis=1)
+mean_abnormal = np.mean(abnormal, axis=1)
+
+# Plot each average over time
+fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(10, 3), sharey=True)
+ax1.plot(time, mean_normal)
+ax1.set(title="Normal Data")
+ax2.plot(time, mean_abnormal)
+ax2.set(title="Abnormal Data")
+plt.show()
+#-------------------------------------------------------------------------
+from sklearn.svm import LinearSVC
+
+# Initialize and fit the model
+model = LinearSVC()
+model.fit(X_train,y_train)
+
+# Generate predictions and score them manually
+predictions = model.predict(X_test)
+print(sum(predictions == y_test.squeeze()) / len(y_test))
+#-------------------------------------------------------------------------
+#Improving the features we use for classification
+#Smooth the data
+#Simple moving averages LOL they call it a rolling window
+#window_size, it's the blank by window_size moving average
+window_size=50
+MovingAverage=audio.rolling(window=window_size)
+SmoothedAudio=MovingAverage.mean()
+#-------------------------------------------------------------------------
+#Calculating the auditory envelop 
+#First you rectify your data, then smooth it. Rectifying it is when you ensure all data points are postive i guess
+RectifiedAudio=audio.apply(np.abs)
+AudioEnvelope=RectifiedAudio.rolling(50).mean()
+#calculate features of the envelope
+MeanEnvelope=np.mean(AudioEnvelope,axis=0)
+StdEnvelope=np.std(AudioEnvelope,axis=0)
+MaxEnvelope=np.max(AudioEnvelope,axis=0)
+#creating our training data for the classifier
+X=np.column_stack([MeanEnvelope,StdEnvelope,MaxEnvelope])
+y=labels.reshape([-1,1])
+
+from sklearn.model_selection import cross_val_score
+model=LinearSVC()
+RSquares=cross_val_score(model,X,y,cv=5)
+print(RSquares)
+
+# import librosa as lr
+AudioTempo=lr.beat.temp(audio,sr=sfrequency,hop_length=2**6,aggregate=None)
+#-----------------------------------------------------------------------
+# Plot the raw data first
+audio.plot(figsize=(10, 5))
+plt.show()
+# Rectify the audio signal
+audio_rectified = audio.apply(np.abs)
+
+# Plot the result
+audio_rectified.plot(figsize=(10, 5))
+plt.show()
+# Smooth by applying a rolling mean
+audio_rectified_smooth = audio_rectified.rolling(50).mean()
+
+# Plot the result
+audio_rectified_smooth.plot(figsize=(10, 5))
+plt.show()
+# Calculate stats
+means = np.mean(audio_rectified_smooth, axis=0)
+stds = np.std(audio_rectified_smooth, axis=0)
+maxs = np.max(audio_rectified_smooth, axis=0)
+
+# Create the X and y arrays
+X = np.column_stack([means, stds, maxs])
+y = labels.reshape([-1, 1])
+
+# Fit the model and score on testing data
+from sklearn.model_selection import cross_val_score
+percent_score = cross_val_score(model, X, y, cv=5)
+print(np.mean(percent_score))
+# Calculate the tempo of the sounds
+tempos = []
+for col, i_audio in audio.items():
+    tempos.append(lr.beat.tempo(i_audio.values, sr=sfreq, hop_length=2**6, aggregate=None))
+
+# Convert the list to an array so you can manipulate it more easily
+tempos = np.array(tempos)
+
+# Calculate statistics of each tempo
+tempos_mean = tempos.mean(axis=-1)
+tempos_std = tempos.std(axis=-1)
+tempos_max = tempos.max(axis=-1)
+
+# Create the X and y arrays
+X = np.column_stack([means, stds, maxs, tempos_mean, tempos_std, tempos_max])
+y = labels.reshape([-1, 1])
+print(y)
+
+# Fit the model and score on testing data
+percent_score = cross_val_score(model, X, y, cv=5)
+print(np.mean(percent_score))
+#-----------------------------------------------------------------------
+#The spectrogram-spectral changes to sound over time
+#Fourier transformation
+
+
+
+#STFT
+
+from librosa.core import stft,amplitude_to_db
+from librosa.display import specshow
+
+#Calc STFT
+HopLength=2**4
+SizeWindow=2**7
+AudioSpec=stft(audio,hop_length=HopLength,n_fft=SizeWindow)
+
+#Convert into decibals for vizualization 
+#makes sure all values are positive real #s
+SpecDb=amplitude_to_db(AudioSpec)
+#Vizualize
+specshow(SpecDb,sr=sfrequency,x_axis=’time’,y_axis=’hz’, hope_length=HopLength)
+
+#calculate the spectral bandwidth and centroid for the spectrogram
+bandwidth=lr.feature.spectral_bandwidth(S=spec)[0]
+centroid=lr.feature.spectral_centroid(S=spec)[0]
+#display these features on top of the spectrogram
+ax=specshow(spec,x_axis=’time’,y_axis=’hz’, hope_length=HopLength)
+ax.plot(times_spec,centroid)
+ax.fill_between(times_spec,centroid - bandwidth / 2, centroid + bandwidth / 2, alpha=0.5)
+
+#-----------------------------------------------------------------------
+# Import the stft function
+from librosa.core import stft
+
+# Prepare the STFT
+HOP_LENGTH = 2**4
+spec = stft(audio, hop_length=HOP_LENGTH, n_fft=2**7)
+
+from librosa.core import amplitude_to_db
+from librosa.display import specshow
+
+# Convert into decibels
+spec_db = amplitude_to_db(spec)
+
+# Compare the raw audio to the spectrogram of the audio
+fig, axs = plt.subplots(2, 1, figsize=(10, 10), sharex=True)
+axs[0].plot(time, audio)
+specshow(spec_db, sr=sfreq, x_axis='time', y_axis='hz', hop_length=HOP_LENGTH)
+plt.show()
+
+import librosa as lr
+
+# Calculate the spectral centroid and bandwidth for the spectrogram
+bandwidths = lr.feature.spectral_bandwidth(S=spec)[0]
+centroids = lr.feature.spectral_centroid(S=spec)[0]
+
+from librosa.core import amplitude_to_db
+from librosa.display import specshow
+
+# Convert spectrogram to decibels for visualization
+spec_db = amplitude_to_db(spec)
+
+# Display these features on top of the spectrogram
+fig, ax = plt.subplots(figsize=(10, 5))
+ax = specshow(spec_db, x_axis='time', y_axis='hz', hop_length=HOP_LENGTH)
+ax.plot(times_spec, centroids)
+ax.fill_between(times_spec, centroids - bandwidths / 2, centroids + bandwidths / 2, alpha=.5)
+ax.set(ylim=[None, 6000])
+plt.show()
+# Loop through each spectrogram
+bandwidths = []
+centroids = []
+
+for spec in spectrograms:
+    # Calculate the mean spectral bandwidth
+    this_mean_bandwidth = np.mean(lr.feature.spectral_bandwidth(S=spec))
+    # Calculate the mean spectral centroid
+    this_mean_centroid = np.mean(lr.feature.spectral_centroid(S=spec))
+    # Collect the values
+    bandwidths.append(this_mean_bandwidth)  
+    centroids.append(this_mean_centroid)
+# Create X and y arrays
+X = np.column_stack([means, stds, maxs, tempo_mean, tempo_max, tempo_std, bandwidths, centroids])
+y = labels.reshape([-1, 1])
+
+# Fit the model and score on testing data
+percent_score = cross_val_score(model, X, y, cv=5)
+print(np.mean(percent_score))
+
