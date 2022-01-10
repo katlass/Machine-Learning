@@ -1,19 +1,4 @@
-Jupyter Notebook
-True Hearts
-Last Checkpoint: 07/08/2021
-(autosaved)
-Current Kernel Logo
-Python 3 
-File
-Edit
-View
-Insert
-Cell
-Kernel
-Widgets
-Help
 
-Code
 # To support both python 2 and python 3
 from __future__ import division, print_function, unicode_literals
 ​
@@ -56,8 +41,8 @@ Saving figure attribute_histogram_plots
 from sklearn.utils import shuffle
 #shuffle because some algorithms need it
 data=shuffle(data)
-#need to find out important independent varibales so can decide if need stratified sampling
-#class imalance using stratefied sampling
+#need to find out important independent variables so I can decide if need stratified sampling
+#class imalance using stratified sampling
 from sklearn.model_selection import StratifiedShuffleSplit
 split = StratifiedShuffleSplit(n_splits=1, test_size=0.3, random_state=42)
 for train_index, test_index in split.split(data, data["DEATH_EVENT"]):
@@ -66,7 +51,7 @@ for train_index, test_index in split.split(data, data["DEATH_EVENT"]):
 strat_test_set=strat_test_set.reset_index()
 strat_train_set.DEATH_EVENT.value_counts()
 len(strat_test_set)
-90
+
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler
@@ -100,22 +85,7 @@ lin_scores = cross_val_score(lin_reg, heart_prepared, strat_train_set["DEATH_EVE
                              scoring="neg_mean_squared_error", cv=10)
 lin_rmse_scores = np.sqrt(-lin_scores)
 display_scores(lin_rmse_scores)
-Predictions: [-0.  0.  1.  1.  0.  1.  0.  1.  0.  1.  0.  0.  1.  0.  1.  0. -0.  0.
-  1.  0.  1.  0.  1.  0.  0. -0.  0.  0.  0.  0.  0.  0.  0.  0.  1.  0.
-  0.  0.  1.  1.  1.  0.  1.  0.  0.  0.  0.  0.  1.  0.  1. -0. -0.  0.
-  0. -0. -0.  0.  0.  0.  1.  0.  0.  0. -0.  1. -0.  0.  1.  1.  0.  0.
-  1.  1.  1.  0.  1.  1.  0.  0.  1.  0.  0. -0.  1.  0. -0.  1.  0.  0.
-  0.  1. -0. -0.  0.  0.  1.  1. -0. -0.  1.  0.  0.  1.  0. -0.  1.  1.
-  0.  1.  0.  1.  1.  0.  0.  1.  0.  0.  0. -0.  0.  0.  0. -0. -0.  1.
- -0.  0.  1.  0.  0.  0.  1. -0.  0.  0.  1. -0.  1.  1.  0.  0.  0.  0.
- -0.  0.  1. -0.  1.  0.  1.  1. -0.  0.  0.  0.  1.  0.  0.  0. -0.  0.
-  0.  0.  0.  1.  0.  1.  1.  0.  0.  1.  0.  1.  1.  0.  0.  1.  0. -0.
-  1.  0.  0.  0.  1.  1.  1.  1.  0.  0.  0.  1.  1.  0.  0.  0. -0.  0.
-  0.  1. -0. -0.  0.  0.  0.  0.  0.  0.  1.]
-Scores: [0.39920885 0.45608796 0.35252899 0.37869037 0.34237531 0.33538898
- 0.38147055 0.47233301 0.36895594 0.34708054]
-Mean: 0.383412048619538
-Standard deviation: 0.04465117985367723
+
 from sklearn.tree import DecisionTreeRegressor
 tree_reg = DecisionTreeRegressor(random_state=42)
 strat_train_set["DEATH_EVENT"].values
@@ -134,10 +104,7 @@ def display_scores(scores):
     print("Standard deviation:", scores.std())
 ​
 display_scores(tree_rmse_scores)
-Scores: [0.48795004 0.48795004 0.48795004 0.37796447 0.37796447 0.48795004
- 0.6172134  0.48795004 0.6172134  0.5       ]
-Mean: 0.4930105928086522
-Standard deviation: 0.07582927658882867
+
 from sklearn.ensemble import RandomForestRegressor
 ​
 forest_reg = RandomForestRegressor(n_estimators=10, random_state=42)
@@ -190,42 +157,7 @@ for mean_score, params in zip(cvres["mean_test_score"], cvres["params"]):
 feature_importances = grid_search.best_estimator_.feature_importances_
 feature_importances
 sorted(zip(feature_importances,strat_train_set.drop("DEATH_EVENT", axis=1).columns), reverse=True)
-Scores: [0.38172541 0.38234863 0.44933814 0.34434202 0.27080128 0.26636888
- 0.3047247  0.44986771 0.41173269 0.40926764]
-Mean: 0.3670517095633739
-Standard deviation: 0.06454378087361948
-/Users/katelassiter/anaconda3/lib/python3.7/site-packages/sklearn/model_selection/_search.py:813: DeprecationWarning: The default of the `iid` parameter will change from True to False in version 0.22 and will be removed in 0.24. This will change numeric results when test-set sizes are unequal.
-  DeprecationWarning)
-0.39869537376707076 {'max_features': 2, 'n_estimators': 3}
-0.3642518714259689 {'max_features': 2, 'n_estimators': 10}
-0.3498309761233217 {'max_features': 2, 'n_estimators': 30}
-0.38096662083205896 {'max_features': 4, 'n_estimators': 3}
-0.3462029164090672 {'max_features': 4, 'n_estimators': 10}
-0.34252867103906093 {'max_features': 4, 'n_estimators': 30}
-0.3844394968536599 {'max_features': 6, 'n_estimators': 3}
-0.34710008484516613 {'max_features': 6, 'n_estimators': 10}
-0.3377223016084686 {'max_features': 6, 'n_estimators': 30}
-0.3933254939342585 {'max_features': 8, 'n_estimators': 3}
-0.35080222484604884 {'max_features': 8, 'n_estimators': 10}
-0.3418295212299015 {'max_features': 8, 'n_estimators': 30}
-0.4547580576695891 {'bootstrap': False, 'max_features': 2, 'n_estimators': 3}
-0.37798255700115213 {'bootstrap': False, 'max_features': 2, 'n_estimators': 10}
-0.40399388355258553 {'bootstrap': False, 'max_features': 3, 'n_estimators': 3}
-0.3571551604169261 {'bootstrap': False, 'max_features': 3, 'n_estimators': 10}
-0.40727044884302305 {'bootstrap': False, 'max_features': 4, 'n_estimators': 3}
-0.37993955701617327 {'bootstrap': False, 'max_features': 4, 'n_estimators': 10}
-0.3461551386283592 {'max_features': 7, 'n_estimators': 180}
-0.34803313071377057 {'max_features': 5, 'n_estimators': 15}
-0.34625063428472147 {'max_features': 3, 'n_estimators': 72}
-0.3524911615726855 {'max_features': 5, 'n_estimators': 21}
-0.3457391685985652 {'max_features': 7, 'n_estimators': 122}
-0.3465562331770334 {'max_features': 3, 'n_estimators': 75}
-0.3452018761306428 {'max_features': 3, 'n_estimators': 88}
-0.3527859049577266 {'max_features': 5, 'n_estimators': 100}
-0.34249483401033065 {'max_features': 3, 'n_estimators': 150}
-0.3851303141167605 {'max_features': 5, 'n_estimators': 2}
-/Users/katelassiter/anaconda3/lib/python3.7/site-packages/sklearn/model_selection/_search.py:813: DeprecationWarning: The default of the `iid` parameter will change from True to False in version 0.22 and will be removed in 0.24. This will change numeric results when test-set sizes are unequal.
-  DeprecationWarning)
+
 [(0.4502456266161925, 'time'),
  (0.16133723416372014, 'serum_creatinine'),
  (0.12059502086991868, 'ejection_fraction'),
@@ -258,20 +190,8 @@ svm_scores = cross_val_score(svm_reg, heart_prepared, strat_train_set["DEATH_EVE
                                 scoring="neg_mean_squared_error", cv=10)
 svm_rmse_scores = np.sqrt(-svm_scores)
 display_scores(svm_rmse_scores)
-Scores: [0.39726551 0.47875374 0.35364796 0.39142587 0.36579564 0.34078763
- 0.38761094 0.49175869 0.37990172 0.35374899]
-Mean: 0.3940696699055883
-Standard deviation: 0.04885923933584049
-####YOU would LIKE TO OPTIMIZE THIS IN THE FUTURE
-#models=["lin_reg","svm_reg"]
-#for model in models:
-#    print(model)
-#    foo="self."+model
- #   print(foo)
- #   exec(foo + " = 'something else'")
-#self.lin_reg=self.lin_reg.fit(X,y)
-#>>> foo = "bar"
-#X>>> exec(foo + " = 'something else'")
+
+
 from scipy import stats
 from sklearn.base import BaseEstimator, TransformerMixin
 def confidence_interval(model,confidence,X,y):
@@ -364,22 +284,10 @@ class ModelFinder(BaseEstimator, TransformerMixin):
 model_selection = ModelFinder(cv=5)
 model_selection.pick_model(heart_prepared,strat_train_set["DEATH_EVENT"])
 ​
-/Users/katelassiter/anaconda3/lib/python3.7/site-packages/scipy/stats/_distn_infrastructure.py:1983: RuntimeWarning: invalid value encountered in multiply
-  lower_bound = _a * scale + loc
-/Users/katelassiter/anaconda3/lib/python3.7/site-packages/scipy/stats/_distn_infrastructure.py:1984: RuntimeWarning: invalid value encountered in multiply
-  upper_bound = _b * scale + loc
-/Users/katelassiter/anaconda3/lib/python3.7/site-packages/sklearn/model_selection/_search.py:813: DeprecationWarning: The default of the `iid` parameter will change from True to False in version 0.22 and will be removed in 0.24. This will change numeric results when test-set sizes are unequal.
-  DeprecationWarning)
-/Users/katelassiter/anaconda3/lib/python3.7/site-packages/sklearn/model_selection/_search.py:813: DeprecationWarning: The default of the `iid` parameter will change from True to False in version 0.22 and will be removed in 0.24. This will change numeric results when test-set sizes are unequal.
-  DeprecationWarning)
 {'Random Forest': 0.3377223016084686,
  'Linear Regression': 0.3854988721230515,
  'SVM': 0.39404450773621913}
 ​
-  File "<ipython-input-210-319dd5990223>", line 8
-    >>> foo = "bar"
-     ^
-SyntaxError: invalid syntax
 
 
 ​
