@@ -1,0 +1,26 @@
+import pandas as pd
+import numpy as np
+import re
+wd="C:\\Users\\sshirol\\Documents\\dow_jones_index\\"
+
+#read in data file
+data=pd.read_csv(wd+"dow_jones_index.data",sep=',')
+
+
+
+#Helper Functions
+#returns Null rows
+def NullRows(df,res=False):
+    df=df[df.isnull().any(axis=1)].head()
+    if len(df)>0:res=df
+    return(res)
+
+#check for null values, returns columns where they are or False
+def NULLChecker(df,res=False):
+    df=df.replace(r'^\s*$', np.nan, regex=True)
+    res1=df.isnull().values.any()
+    if res1 == True:
+        res=df.columns[df.isna().any()].tolist()
+        print(res)   
+        print(NullRows(data))
+NULLChecker(data)
