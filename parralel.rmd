@@ -9,7 +9,7 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ##Parallel Porcessing In R
 
-This is notes and code exercises from the DataCamp Course Parallel Programming In R
+This is notes and code exercises from the DataCamp Course Parallel Programming In R 
 
 Packages:
 -parallel
