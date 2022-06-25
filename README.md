@@ -1,2 +1,2 @@
 # Machine-Learning
-Practice with Machine Learning in Scikit-Learn and TensorFlow
+Practice with machine learning in scikit-learn, tensorFlow, and distributed computing.
