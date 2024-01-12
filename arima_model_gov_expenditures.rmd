@@ -1,0 +1,147 @@
+---
+title: "Time Series Forecasting"
+author: "K. Lass"
+date: "1/12/2022"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+#import libraries 
+library('forecast')
+library('stats')
+library('tseries')
+
+```
+
+## Data
+
+Series:	Federal Government: Current Expenditures  
+Web Address: (https://fred.stlouisfed.org/series/NA000283Q)
+(1)	The federal government budget includes three types of spending: mandatory, discretionary, and interest on debts owed by the nation. The majority of the Government's expenditures go towards Social Security, Medicare, and Medicaid programs as mandatory spending. 
+(a)	Units: Millions of Dollars, Not Seasonally Adjusted
+(b)	Low Frequency: Quarterly
+(c)	Number Observations: 48 
+(i)	Duration: Q4 2006- Q3 2018
+(ii)	Within-Sample: Area of focus is Q4 2006- Q3 2016 (40 Obs)
+(iii)	Post-Sample: This leaves 8 quarters (Q4 2016 - Q3 2018) after the area of focus for post-sample testing
+
+
+```{r cars}
+
+#read/attach data
+data=read.csv("/stfm/dev2/m1kal01/Personal/data.csv")
+attach(data)
+
+#generate time series
+Expenditure_Quarterly=ts(Expenditure, frequency=4)
+print(Expenditure_Quarterly)
+
+#Create size restrictions
+N=length(Expenditure_Quarterly)
+WithinSampleLength=N-8
+WithinSample=ts(Expenditure_Quarterly[1:WithinSampleLength],frequency=4,start=c(2006,4))
+print(WithinSample)
+PostTest=Expenditure_Quarterly[(WithinSampleLength+1):N]
+print(PostTest)
+```
+
+## Plot
+
+
+```{r Expenditure_Quarterly, echo=FALSE}
+plot(Expenditure_Quarterly)
+```
+
+## Purpose
+When modeling a series, you must start by testing for stationarity, this is done by looking at the behavior of the error term. We are looking to see if the errors or series are autocorrelated, and thus the behavior of the variable today I affected by its behavior in the past. If the autocorrelation coefficient, rho, is equal to 1, the error term behaves as Et=Et-1+ut. This is a random walk model, thus the variance become undefined, as it goes to infinity. In terms of the difference equation, the time path and the general solution of this variable will not converge to equilibrium, the model is totally random. This is a unit root, which can detected by a Dickey-Fuller test, and it must be dealt with by differencing the equation. Once the series is stationary, it must be tested to see if the series is truly white noise, which can be tested by a Ljung-Box test. In the case that it is truly white noise, the model can not be used to forecast. If it is not, examining of the autocorrelation functions and partial autocorrelation functions will reveal if the model should be an AR,MA, or ARMA process.
+
+#Test for Stationarity
+First, a Dickey-Fuller test for a unit root was ran on the original series.
+
+```{r}
+#adf is augmented dickey fuller test
+adf.test(WithinSample,alternative='stationary')
+```
+The results of this test:
+A large p-value is indicative of a unit root process, that the series is not stationary. To deal with a not stationary series, we use differencing.
+Reject null hypothesis that series is stationary, must difference it.
+
+Differencing the equation:
+```{r}
+WithinSampleDiff1=diff(WithinSample, differences=1)
+plot(WithinSampleDiff1)
+```
+
+Dickey-Fuller Test for Stationarity on First-Differenced Series:
+```{r}
+adf.test(WithinSampleDiff1,alternative='stationary')
+```
+The results of this test:
+Still reject null, difference again.
+
+Differencing the equation again
+```{r}
+WithinSampleDiff2=diff(WithinSample, differences=2)
+plot(WithinSampleDiff2)
+```
+
+Dickey-Fuller Test for Stationarity on Second-Differenced Series
+```{r}
+adf.test(WithinSampleDiff2,alternative='stationary')
+```
+The results of this test:
+Now fail to reject null, there is now not a unit root process and the series is stationary.
+
+#Partial Autocorrelation Function (PACF) and Autocorrelation Function(ACF)
+```{r}
+Acf(WithinSampleDiff2,main='This is my Autcorrelation Function')
+Pacf(WithinSampleDiff2,main='This is my Partial Autcorrelation Function')
+```
+From visual inspection, it appears to tail off after 3
+My Guess: IMA (2,4)
+
+#Doing Auto-ARIMA
+Auto-ARIMA is selected by running tons of possible combinations of a model and choosing the one with the smallest AIC (Akaike Information Criteria)
+```{r}
+auto.arima(WithinSample,seasonal=TRUE)
+```
+This Auto Arima I disagree with, it doesn't make sense it only differenced it once when it is still not stationary yet.
+In response I forced it to allow me to difference twice.
+```{r}
+ARIMAWithin=auto.arima(WithinSample,d=2,seasonal=TRUE)
+print(ARIMAWithin)
+```
+
+#Forecasting with Auto-Arima  
+```{r}
+#h means steps ahead
+ARIMAWithinYhats=forecast(ARIMAWithin,h=8)
+print(ARIMAWithinYhats)
+ActualForecastValues=ARIMAWithinYhats[4]
+print(PostTest[1:8])
+PostValues=PostTest[1:8]
+print(PostValues)
+```
+
+Getting post-sample residuals:
+```{r}
+ARIMAResidualsTest=ARIMAWithinYhats$mean-PostTest
+print(ARIMAResidualsTest)
+```
+
+Getting RMSE
+```{r}
+sqrt(mean(ARIMAResidualsTest^2))
+```
+
+
+
+
+
+
+
+
+
