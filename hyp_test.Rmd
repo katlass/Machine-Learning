@@ -1,0 +1,1086 @@
+---
+title: "hypothesis testing in R"
+output: html_notebook
+---
+
+Exercise 1;
+Calculating the sample mean
+The late_shipments dataset contains supply chain data on the delivery of medical supplies. Each row represents one delivery of a part. The late columns denotes whether or not the part was delivered late. A value of "Yes" means that the part was delivered late, and a value of "No" means the part was delivered on time.
+
+Let's begin our analysis by calculating a point estimate (sample statistic), namely the proportion of late shipments.
+
+late_shipments is available; dplyr is loaded.
+```{r, eval=FALSE}
+# View the late_shipments dataset
+View(late_shipments)
+
+# Calculate the proportion of late shipments
+late_prop_samp <- late_shipments %>% 
+  summarize(prop_late_shipments = mean(late == "Yes")) %>% 
+  pull(prop_late_shipments)
+
+# See the results
+late_prop_samp
+```
+
+Exercise 2
+Calculating a z-score
+Since variables have arbitrary ranges and units, we need to standardize them. For example, it would be silly if a hypothesis test gave a different answer if your variables were in Euros instead of US dollars. Standardization avoids that.
+
+One standardized value of interest in a hypothesis test is called a z-score. To calculate it, we need three numbers: the sample statistic (point estimate), the hypothesized statistic, and the standard error of the statistic (which we estimate from the bootstrap distribution).
+
+The sample statistic is late_prop_samp.
+
+late_shipments_boot_distn is a bootstrap distribution of the proportion of late shipments. The proportion of late shipments statistic is in the late_prop column.
+
+late_prop_samp and late_shipments_boot_distn are available; dplyr is loaded.
+```{r, eval=FALSE}
+# Hypothesize that the proportion is 6%
+late_prop_hyp <- 0.06
+
+# Calculate the standard error
+std_error <- late_shipments_boot_distn %>% 
+  summarize(sd_late_prop = sd(late_prop)) %>% 
+  pull(sd_late_prop)
+
+# Find z-score of late_prop_samp
+z_score <- (late_prop_samp - late_prop_hyp) / std_error
+
+# See the results
+z_score
+```
+
+Zesty z-scoring! The z-score is a standardized measure of the difference between the sample statistic and the hypothesized statistic.
+
+Notes:
+-Hypothesis tests determine whether the sample statistics lie in the tails of the null distribution.
+-Small p-values mean the statistic is in the tail of the null distribution (the distribution of the statistic if the null hypothesis was true).
+-The tails of a distribution are the left and right edges of its PDF.
+-A p-value is the probability of observing a test statistic as extreme or more extrementhan what was observed in our original sample, assuming the null hypothesis is true.
+-Calculating the p-value; The last step is new. We pass the z-score to the normal cumulative distribution function, pnorm.
+
+
+Exercise 3
+Calculating p-values
+In order to determine whether to choose the null hypothesis or the alternative hypothesis, you need to calculate a p-value from the z-score.
+
+Let's return to the late shipments dataset and the proportion of late shipments.
+
+The null hypothesis, , is that the proportion of late shipments is six percent.
+
+The alternative hypothesis, , is that the proportion of late shipments is greater than six percent.
+
+The observed sample statistic, late_prop_samp, the null hypothesis statistic, late_prop_hyp (6%), and the bootstrap standard error, std_error are available.
+```{r, eval=FALSE}
+# Calculate the z-score of late_prop_samp
+z_score <- (late_prop_samp-late_prop_hyp)/std_error
+
+# Calculate the p-value
+p_value <- pnorm(z_score,lower.tail=FALSE)
+                 
+# See the result
+p_value   
+```
+Perfect p-value! The p-value is calculated by transforming the z-score with the standard normal cumulative distribution function
+
+Notes:
+-The significance level of a hypothesis test (α) is the threshold point for "beyond a reasonable doubt".
+
+Exercise 4
+Calculating confidence intervals
+If you give a single estimate of a sample statistic, you are bound to be wrong by some amount. For example, the hypothesized proportion of late shipments was 6%. Even if evidence suggests the null hypothesis that the proportion of late shipments is equal to this, for any new sample of shipments, the proportion is likely to be a little different. Consequently, it's a good idea to state a confidence interval. That is, you say "we are 95% 'confident' the proportion of late shipments is between A and B" (for some value of A and B).
+
+Sampling in R demonstrated two methods for calculating confidence intervals. Here, you'll use quantiles of the bootstrap distribution to calculate the confidence interval.
+
+late_prop_samp and late_shipments_boot_distn are available; dplyr is loaded.
+```{r, eval=FALSE}
+# Calculate 95% confidence interval using quantile method
+conf_int_quantile <- late_shipments_boot_distn %>%
+  summarize(
+    lower = quantile(prop_late_shipments, 0.025),
+    upper = quantile(prop_late_shipments, 0.975)
+  )
+
+# See the result
+conf_int_quantile
+```
+When you have a confidence interval width equal to one minus the significance level, if the hypothesized population parameter is within the confidence interval, you should fail to reject the null hypothesis.
+
+## T- test
+-Is that increase statistically significant or could it be explained by sampling variability?
+-Standard error
+  -To calculate the standard error, needed for the denominator of the test statistic equation, bootstrapping is most           accurate. 
+  -However, there is an easier way to approximate it. 
+    -Calculate the standard deviation of the numeric variable for each group in the sample, and the number of observations       for each group. Then it's just some arithmetic.
+
+
+```{r, eval=FALSE}
+# Calculate the numerator of the test statistic
+numerator <- (xbar_no - xbar_yes)
+
+
+# Calculate the denominator of the test statistic
+denominator <- sqrt((s_no^2/n_no)+(s_yes^2/n_yes))
+
+# Calculate the test statistic
+t_stat <- numerator/denominator
+
+# See the result
+t_stat
+```
+
+
+## Z vs T
+-to get the p-value, you transformed the z-score with the normal CDF. 
+-Calculating p-values: two means from different groups
+-Now we are calculating means rather than proportions, the z-score is replaced with a t test statistic. 
+-The calculation also needs the degrees of freedom, which is the number of observations in both groups, minus two. 
+-In the previous slides, we used an approximation using sample information (not bootstrapping) for the test statistic standard error. 
+  -A consequence of this is that to calculate the p-value, we need to transform the test statistic using the t-distribution CDF instead of the normal distribution CDF. 
+  -Using this approximation adds more uncertainty and that's why this is a t instead of a z problem. 
+  -The t distribution allows for more uncertainty when using multiple estimates in a single statistic calculation. 
+  -Notice the use of pt instead of pnorm, and that the df argument is set to the degrees of freedom. 
+
+## Why is t needed?
+-The process for calculating p-values is to start with the sample statistic, standardize it to get a test statistic, then transform it via a cumulative distribution function. 
+-In Chapter 1, that final transformation was denoted z, and the CDF transformation used the (standard normal) z-distribution. 
+-In the last video, the test statistic was denoted t, and the transformation used the t-distribution.
+-In which hypothesis testing scenario is a t-distribution needed instead of the z-distribution?
+  -Using a sample standard deviation to estimate the standard error is computationally easier than using bootstrapping.       -However, to correct for the approximation, you need to use a t-distribution when transforming the test statistic to get the p-value.
+
+Exercise:
+you need to transform the test statistic with a cumulative distribution function to get a p-value.
+```{r, eval=FALSE}
+# Calculate the degrees of freedom
+degrees_of_freedom <- n_no + n_yes -2
+
+# Calculate the p-value from the test stat
+p_value <- pt(t_stat,degrees_of_freedom)
+
+# See the result
+p_value
+```
+
+## Paired Data
+-One feature of this dataset is that the 2008 votes and the 2012 votes are paired, since they both refer to the same county. -That is, the 2008 and 2012 values aren't independent from each other. 
+-Some voting patterns may occur due to county-level demographics and local politics. 
+-We want to capture this pairing in our model.
+-Performing an unpaired t-test increases the chance of a false negative error.
+
+Exercise
+Visualizing the difference
+Before you start running hypothesis tests, it's a great idea to perform some exploratory data analysis. That is, calculating summary statistics and visualizing distributions.
+
+Here, you'll look at the proportion of county-level votes for the Democratic candidate in 2012 and 2016, dem_votes_potus_12_16. Since the counties are the same in both years, these samples are paired. The columns containing the samples are dem_percent_12 and dem_percent_16.
+
+dem_votes_potus_12_16 is available; dplyr and ggplot2 are loaded.
+```{r, eval=FALSE}
+# View the dem_votes_potus_12_16 dataset
+View(dem_votes_potus_12_16)
+
+# Calculate the differences from 2012 to 2016
+sample_dem_data <- dem_votes_potus_12_16 %>%
+    mutate( diff = dem_percent_12-dem_percent_16)
+
+
+# See the result
+sample_dem_data
+
+# From previous step
+sample_dem_data <- dem_votes_potus_12_16 %>% 
+  mutate(diff = dem_percent_12 - dem_percent_16)
+
+# Find mean and standard deviation of differences
+diff_stats <- sample_dem_data %>%
+  summarise(xbar_diff=mean(diff),
+            s_diff =sd(diff))
+
+# See the result
+diff_stats
+
+
+# Using sample_dem_data, plot diff as a histogram
+ggplot(sample_dem_data, aes(x = diff)) +
+geom_histogram(binwidth = 1)
+
+```
+Outcome: Delightful difference discovery! Notice that the majority of the histogram lies to the right of zero
+
+
+Exercise
+Using t.test()
+Manually calculating test statistics and transforming them with a CDF to get a p-value is a lot of effort to do every time you need to compare two sample means. The comparison of two sample means is called a t-test, and R has a t.test() function to accomplish it. This function provides some flexibility in how you perform the test.
+
+As in the previous exercise, you'll explore the difference between the proportion of county-level votes for the Democratic candidate in 2012 and 2016.
+
+sample_dem_data is available, and has columns diff, dem_percent_12, and dem_percent_16.
+```{r, eval=FALSE}
+# Conduct a t-test on diff
+test_results <- t.test(sample_dem_data$diff,alternative='greater')
+
+# See the results
+test_results
+```
+
+Outcome:
+data:  sample_dem_data$diff
+t = 30.298, df = 499, p-value < 2.2e-16
+alternative hypothesis: true mean is greater than 0
+95 percent confidence interval:
+ 6.45787     Inf
+sample estimates:
+mean of x 
+ 6.829313 
+ 
+```{r, eval=FALSE}
+ # Conduct a paired t-test on dem_percent_12 and dem_percent_16
+test_results <- t.test(sample_dem_data$dem_percent_12,
+                        sample_dem_data$dem_percent_16,
+                        alternative='greater',
+                        mu=0,
+                        paired=TRUE)
+
+
+
+
+
+
+
+# See the results
+test_results
+```
+Outcome:
+data:  sample_dem_data$dem_percent_12 and sample_dem_data$dem_percent_16
+t = 30.298, df = 499, p-value < 2.2e-16
+alternative hypothesis: true difference in means is greater than 0
+95 percent confidence interval:
+ 6.45787     Inf
+sample estimates:
+mean of the differences 
+               6.829313 
+
+The p-value from the unpaired test is greater than than the p-value from the paired test.               
+-When you have paired data, a paired t-test is preferable to the unpaired version because it gives lower p-values, which reduces the chance of a false negative error.             
+
+## ANOVA
+-ANOVA tests determine whether there are differences between the groups. 
+  -First, you fit a linear regression. 
+  -You call lm, specifying the numeric variable as the response on the left-hand-side of the formula, and the categories as the explanatory variable on the right-hand side. 
+  -Then you call anova to perform an analysis of variance test. 
+    -In the job_sat row, the right-hand column contains a p-value, which is point-zero-zero five. 
+    -The two stars next to it tell you that this p-value is significant at the point-zero-one level. 
+    -That means that at least two of the categories of job satisfaction have significant differences between their compensation levels. 
+    -The problem is that this method doesn't tell you which two categories they are. 
+    -For this reason, ANOVA is less useful than pairwise t-tests.
+-Pairwise tests
+  -To compare all five categories of job satisfaction using hypothesis tests, we can test each pair. 
+  -There are ten ways of choosing two items from a set of five, so we have ten tests to perform. 
+  -We'll set the significance level to point-two, use pairwise.t.test()
+    -The result shows a matrix of ten p-values.
+  -As the no. of groups increases, the number of pairs - and hence the number of hypothesis tests - increases quadratically.   -The more tests you run, the higher the chance that at least one of them will give a false positive significant result. 
+Bonferroni correction
+  -The solution to this is to apply an adjustment to increase the p-values, reducing the chance of getting a false positive.   -One common adjustment is the Bonferroni correction. 
+  -R provides several methods for adjusting the p-values.
+    -Holm adjustment is the default. 
+    -It's less strict than Bonferroni, but works well in most situations.
+-Bonferroni and Holm adjustments
+  -If you have ten tests, Bonferroni just multiplies the p-values by ten up to a maximum of one. 
+  -Holm will multiply the smallest by ten, then the second smallest by nine, and so on. 
+    -There's a possible extra correction to make sure that the order of p-values from smallest to largest is preserved, but that's the gist of it.
+    
+-Comparing the Tukey Procedure with the Bonferroni Procedure
+-The Bonferroni procedure is a good all around tool, but for all pairwise comparisons the Tukey studentized range procedure is slightly better as we show here.
+-The studentized range is the distribution of the difference between the maximum and a minimum over the standard error of the mean. When we calculate a t-test, or when we're using the Bonferroni adjustment where g is the number of comparisons, we are not comparing apples and oranges. 
+-In one case (Tukey) the statistic has a denominator with the standard error of a single mean and in the other case (t-test) with the standard error of the difference between means as seen in the equation for t and q above.
+-Dunnett's Procedure
+  -Dunnett’s procedure is another multiple comparison procedure specifically designed to compare each treatment to a control. 
+  -if we have a groups, let the last one be a control group and the first a - 1 be treatment groups. 
+  We want to compare each of these treatment groups to this one control. 
+  -Therefore, we will have a - 1 contrasts or a - 1 pairwise comparisons. 
+  -To perform multiple comparisons on these a - 1 contrasts we use special tables for finding hypothesis test critical values, derived by Dunnett.
+-So in a sense, you have to ask yourself the question of what is the set of tests that I want to protect against making a Type I error. 
+  -Fisher's LSD has the practicality of always using the same measuring stick, the unadjusted t-test.
+  -So, in Fisher's LSD procedure each test is standing on its own and is not really a multiple comparisons test.
+  -If you are looking for any type of difference and you don't know how many you are going to end up doing, you should probably be using Scheffé to protect you against all of them. 
+  -But if you know it is all pairwise and that is it, then Tukey's would be best. 
+  -If you're comparing a bunch of treatments against a control then Dunnett's would be best.
+  -There is a whole family of step-wise procedures which are now available, but we will not consider them here. 
+    -Each can be shown to be better in certain situations. 
+-Another approach to this problem is called False Discovery Rate control. 
+  -It is used when there are hundreds of hypotheses - a situation that occurs for example in testing gene expression of all genes in an organism, or differences in pixel intensities for pixels in a set of images. 
+    -The multiple comparisons procedures discussed above all guard against the probability of making one false significant call. 
+    -But when there are hundreds of tests, we might prefer to make a few false significant calls if it greatly increases our power to detect the true difference. 
+    -False Discovery Rate methods attempt to control the expected percentage of false significant calls among the tests declared significant.
+    
+Exercise
+Visualizing many categories
+So far in this chapter, we've only considered the case of differences in a numeric variable between two categories. Of course, many datasets contain more categories. Before you get to conducting tests on many categories, it's often helpful to perform exploratory data analysis. That is, calculating summary statistics for each group and visualizing the distributions of the numeric variable for each category using box plots.
+
+Here, we'll return to the late shipments data, and how the price of each package (pack_price) varies between the three shipment modes (shipment_mode): "Air", "Air Charter", and "Ocean".
+
+late_shipments is available; dplyr and ggplot2 are loaded.
+```{r, eval=FALSE}
+# Using late_shipments, group by shipment mode, and calculate the mean and std dev of pack price
+late_shipments %>%
+group_by(shipment_mode)%>%
+summarise(xbar_pack_price = mean(pack_price),
+            s_pack_price = sd(pack_price))
+
+# Using late_shipments, plot pack_price vs. shipment_mode
+# as a box plot with flipped x and y coordinates
+late_shipments %>%
+    ggplot(aes(x = shipment_mode, y = pack_price)) +
+    geom_boxplot() +
+    coord_flip()
+
+# Run a linear regression of pack price vs. shipment mode 
+mdl_pack_price_vs_shipment_mode <- lm(  pack_price ~ shipment_mode,data=late_shipments)
+
+# See the results
+summary(mdl_pack_price_vs_shipment_mode)
+```
+Outcome:
+There certainly looks to be a difference in the pack price between each of the three shipment modes. Do you think the differences are statistically significant?
+
+Call:
+lm(formula = pack_price ~ shipment_mode, data = late_shipments)
+
+Residuals:
+   Min     1Q Median     3Q    Max 
+-41.83 -33.25 -11.01  28.18 308.18 
+
+Coefficients:
+                         Estimate Std. Error t value Pr(>|t|)    
+(Intercept)                41.825      1.664  25.136  < 2e-16 ***
+shipment_modeAir Charter  -38.431     20.537  -1.871   0.0616 .  
+shipment_modeOcean        -34.009      5.718  -5.948 3.76e-09 ***
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+Residual standard error: 50.14 on 995 degrees of freedom
+Multiple R-squared:  0.03713,	Adjusted R-squared:  0.0352 
+F-statistic: 19.19 on 2 and 995 DF,  p-value: 6.668e-09
+
+Analysis of Variance Table
+Response: pack_price
+               Df  Sum Sq Mean Sq F value    Pr(>F)    
+shipment_mode   2   96468   48234  19.187 6.668e-09 ***
+Residuals     995 2501359    2514                      
+---
+Signif. codes:  0 ‘***’ 0.001 ‘**’ 0.01 ‘*’ 0.05 ‘.’ 0.1 ‘ ’ 1
+
+
+Exercise
+Pairwise t-tests
+The ANOVA test didn't tell us which categories of shipment mode had significant differences in pack prices. To pinpoint which categories had differences, we could instead use pairwise t-tests.
+
+late_shipments is available.
+```{r, eval=FALSE}
+# Perform pairwise t-tests on pack price, grouped by shipment mode, no p-value adjustment
+test_results <- pairwise.t.test(late_shipments$pack_price, late_shipments$shipment_mode, p.adjust.method = "none")
+
+# See the results
+test_results
+
+# Modify the pairwise t-tests to use Bonferroni p-value adjustment
+test_results <- pairwise.t.test(
+  late_shipments$pack_price,
+  late_shipments$shipment_mode,
+  p.adjust.method = "bonferroni"
+)
+
+# See the results
+test_results
+```
+data:  late_shipments$pack_price and late_shipments$shipment_mode 
+            Air     Air Charter
+Air Charter 0.062   -          
+Ocean       3.8e-09 0.835      
+
+P value adjustment method: none 
+
+            Air     Air Charter
+Air Charter 0.18    -          
+Ocean       1.1e-08 1.00       
+
+P value adjustment method: bonferroni 
+
+## Easier standard error calculations
+-Bootstrap distributions can be computationally intensive to calculate, so this time we'll calculate the test statistic without it.
+-Here's the approximate standard error for two sample means from Chapter 2. 
+  -For proportions, under H-naught, the standard error of p-hat is p-zero times one minus p-zero, divided by the number of observations, then square-rooted. 
+  -We can substitute this into our equation for the z-score. 
+  -This is easy to calculate because it only uses p-hat and n, which we get from the sample, and p-zero, which we chose.
+
+## Why z instead of t?
+- The standard deviation of the sample, s, is calculated from the sample mean, x-bar. 
+  -That means that x-bar is used in the numerator to estimate the population mean, and in the denominator to estimate the population standard deviation. 
+  -This dual usage causes an increase in our uncertainty about the estimate of the population parameter. 
+  -Since t-distributions are effectively a normal distribution with fatter tails, we can use them to account for this extra uncertainty. 
+  -In effect, the t-distribution provides extra caution against mistakenly rejecting the null hypothesis. 
+  -For proportions, we only use p-hat in the numerator, thus avoiding the problem with uncertainty, and a z-distribution is fine. 
+  
+Exercise
+Test for single proportions
+In Chapter 1, you calculated a p-value for a test hypothesizing that the proportion of late shipments was greater than 6%. In that chapter, you used a bootstrap distribution to estimate the standard error of the statistic. A simpler alternative is to use an equation for the standard error based on the sample proportion, hypothesized proportion, and sample size.
+Let's revisit the p-value using this simpler calculation.
+late_shipments is available; dplyr is loaded.  
+```{r, eval=FALSE}
+# Hypothesize that the proportion of late shipments is 6%
+p_0 <- 0.06
+
+# Calculate the sample proportion of late shipments
+p_hat <- late_shipments %>%
+    summarise(prop_late = mean(late == "Yes"))%>%
+    pull(prop_late)
+
+
+
+# Calculate the sample size
+n <- nrow(late_shipments)
+
+# From previous step
+p_0 <- 0.06
+p_hat <- late_shipments %>%
+  summarize(prop_late = mean(late == "Yes")) %>%
+  pull(prop_late)
+n <- nrow(late_shipments)
+
+# Calculate the numerator of the test statistic
+numerator <- p_hat-p_0
+
+# Calculate the denominator of the test statistic
+denominator <- sqrt((p_0*(1-p_0))/n)
+
+# Calculate the test statistic
+z_score <- numerator/denominator
+
+# See the result
+z_score
+# From previous step
+p_0 <- 0.06
+p_hat <- late_shipments %>%
+  summarize(prop_late = mean(late == "Yes")) %>%
+  pull(prop_late)
+n <- nrow(late_shipments)
+numerator <- p_hat - p_0
+denominator <- sqrt(p_0 * (1 - p_0) / n)
+z_score <- numerator / denominator
+
+# Calculate the p-value from the z-score
+p_value <- pnorm(z_score,lower.tail=FALSE)
+
+# See the result
+p_value
+```
+outcome:
+While bootstrapping can be used to estimate the standard error of any statistic, it is computationally intensive. For proportions, using a simple equation of the hypothesized proportion and sample size is easier to compute, and the resulting p-value is almost identical (0.19 rather than 0.18).
+
+## Comparing two proportions
+-Let's break down this z-score equation. 
+  -The sample statistic is the difference in the proportions for each category. 
+    -That's the two p-hat values on the numerator. 
+  -We subtract the hypothesized value of the population parameter. 
+    -Assuming the null hypothesis is true, that's just zero, so the term disappears. 
+  -The denominator is the standard error of the sample statistic. 
+    -Again we can avoid having to generate a bootstrap distribution. 
+    -The equation for the standard error is a slightly more complicated version of the equation for the one sample case. 
+    -In this equation, note that p-hat is the sample proportion for the whole dataset, not for each category. 
+      -This whole dataset p-hat is known as a pooled estimate of the population proportion. 
+  -We need one more equation to get p-hat. 
+    -It's a weighted mean of the p-hats for each category. 
+    -This looks horrendous, but it's just arithmetic, and R is pretty good at that. 
+  -The good news is that we only need four numbers from the sample dataset to do these calculations.
+- Yates' continuity correction. 
+  -This is a fudge factor needed for technical reasons when the sample size is very small. 
+
+
+Exercise
+Test for two proportions
+You may wonder if the amount paid for freight affects whether or not the shipment was late. Recall that in late_shipments dataset, whether or not the shipment was late is stored in the late column. Freight costs are stored in the freight_cost_group column, and the categories are "expensive" and "reasonable".s
+p_hats contains the estimates of population proportions (sample proportions) for the "expensive" and "reasonable" groups. ns contains the sample sizes for these groups.
+```{r, eval=FALSE}
+# See the sample variables
+print(p_hats)
+print(ns)
+
+# Calculate the pooled estimate of the population proportion
+p_hat <- weighted.mean(p_hats, ns)
+# Or explicitly using 
+# (p_hats["reasonable"] * ns["reasonable"] + p_hats["expensive"] * ns["expensive"]) / (ns["reasonable"] + ns["expensive"])
+
+# See the result
+p_hat
+
+# From previous step
+p_hat <- weighted.mean(p_hats, ns)
+
+# Calculate sample prop'n times one minus sample prop'n
+p_hat_times_not_p_hat <- p_hat*(1-p_hat)
+
+# Divide this by the sample sizes
+p_hat_times_not_p_hat_over_ns <- p_hat_times_not_p_hat/ns
+
+# Calculate std. error
+std_error <- sqrt(sum(p_hat_times_not_p_hat_over_ns))
+
+# See the result
+std_error
+
+# Calculate the z-score
+z_score <- (p_hats['expensive']-p_hats['reasonable'])/std_error
+
+# See the result
+z_score
+
+# Calculate the p-value from the z-score
+p_value <- pnorm(z_score,lower.tail=FALSE)
+
+# See the result
+p_value
+```
+Calculate the pooled sample proportion,  as the mean of p_hats sample proportions weighted by ns. 
+
+
+Exercise
+prop_test() for two samples
+That took a lot of effort to calculate the p-value, so while it is useful to see how the calculations work, it isn't practical to do in real-world analyses. For daily usage, it's better to use the infer package.
+late_shipments is available; infer is loaded.
+```{r, eval=FALSE}
+# Perform a proportion test appropriate to the hypotheses 
+test_results <- late_shipments %>% 
+  prop_test(
+    late ~ freight_cost_group,
+    order = c("expensive", "reasonable"),
+    success = "Yes",
+    alternative = "greater",
+    correct = FALSE
+  )
+
+# See the results
+test_results
+```
+
+
+## Declaration of independence
+-Just as ANOVA extends t-tests to more than two groups, chi-square tests of independence extend proportion tests to more than two groups.
+-Revisiting the proportion test
+  Here's the proportion test from last time. In the first column, the test statistic is the square of the z-score. Minus four-point-two-two squared is seventeen-point-eight. In the second column, chisq_df means the degrees of freedom of a chi-square test. Its value is one.
+-Independence of variables
+  -That proportion test had a positive result. 
+  -There was evidence that the hobbyist and age category variables had an association. 
+  -If that wasn't the case, and the proportion of hobbyists was the same for each age category, the variables would be considered statistically independent. 
+  -More formally, statistical independence of two categorical variables is when the proportion of successes in the response variable is the same across all categories of the explanatory variable.
+
+## Declaring the hypotheses
+-The null hypothesis is that independence occurs.
+-The test statistic is denoted chi-square. 
+  -It quantifies how far away the observed results are from the values you'd expect if independence was true.
+-Exploratory visualization: proportional stacked bar plot
+  -If the age category was independent of the job satisfaction, the split between the age categories would be at the same height in each of the five bars. 
+  -There's some variation here, but we'll need the hypothesis test to determine whether it's a significant difference.
+
+## Chi-square independence test using chisq_test()
+  -The hypothesis test for independence is called a chi-square independence test. 
+    -The p-value is point-two-three, which is above the significance level we set, so we conclude that age categories are independent of job satisfaction. 
+    -The chi-square distribution, whose CDF is used to calculate the p-value from the test statistic, has a degrees of freedom argument, just like the t-distribution. 
+    -The results show that there are four degrees of freedom. 
+      -This is the number of response categories minus one, times the number of explanatory categories minus one. 
+
+## Swapping the variables?
+-If we swap the variables, so age category is the response, and job satisfaction is the explanatory variable, the visual inspection technique is the same: see if the splits for each bar are in similar places.
+-If we run the chi-square test with the variables swapped, then the results are identical. 
+-We should ask questions like "are variables X and Y independent?", not "is variable X independent from variable Y?", since the order doesn't matter.
+
+## What about direction and tails?
+-We didn't worry about tails in this test, and in fact chisq_test doesn't have an alternative argument. 
+-This is because the test statistic is based on the square of observed and expected counts, and square numbers are non-negative. 
+-That means that chi-square tests tend to be right-tailed tests.
+-Left-tailed chi-square tests are used in statistical forensics to detect is a fit is suspiciously good because the data was fabricated. 
+-Chi-square tests of variance can be two-tailed. 
+-These are niche uses though.
+
+Note:
+As you increase the degrees of freedom or the non-centrality, the chi-square distribution PDF and CDF curves get closer to those of a normal distribution.
+
+Exercise
+Chi-square test of independence
+The chi-square independence test compares proportions of successes of a categorical variable across categories of another categorical variable.
+
+Trade deals often use a form of business shorthand in order to specify the exact details of their contract. These are International Chamber of Commerce (ICC) international commercial terms, or incoterms for short.
+
+The late_shipments dataset includes a vendor_inco_term that describes the incoterms that applied to a given shipment. The choices are:
+
+EXW: "Ex works". The buyer pays for transportation of the goods.
+CIP: "Carriage and insurance paid to". The seller pays for freight and insurance until the goods board a ship.
+DDP: "Delivered duty paid". The seller pays for transportation of the goods until they reach a destination port.
+FCA: "Free carrier". The seller pays for transportation of the goods.
+Perhaps the incoterms affect whether or not the freight costs are expensive. Test these hypotheses with a significance level of 0.01.
+```{r, eval=FALSE}
+# Plot vendor_inco_term filled by freight_cost_group.
+# Make it a proportional stacked bar plot.
+ggplot(late_shipments, aes(vendor_inco_term, fill = freight_cost_group)) +
+geom_bar(position = "fill") +
+ylab("proportion")
+
+# Perform a chi-square test of independence on freight_cost_group and vendor_inco_term
+test_results <- late_shipments %>%
+chisq_test(vendor_inco_term ~ freight_cost_group)
+
+
+# See the results
+test_results
+```
+
+outcome:
+test_results
+# A tibble: 1 × 3
+  statistic chisq_df       p_value
+      <dbl>    <int>         <dbl>
+1      44.1        3 0.00000000142
+
+Reject the null hypothesis and conclude that vendor_inco_term and freight_cost_group are associated.
+
+## Goodness of Fit
+-This time, we'll use another variant of the chi-square test to compare a single categorical variable to a hypothesized distribution.
+-Let's hypothesize that half the users in the population would respond "Hello old friend", and the other three responses would get one sixth each. 
+  -We can specify the hypotheses as whether or not the sample matches this hypothesized distribution. 
+  -The test statistic measures how far the distribution of proportions observed in the sample is from the hypothesized distribution of proportions. 
+-chi-square goodness of fit test using chisq_test()
+  -The one sample chi-square test is called a goodness of fit test. 
+  -To run it, we need the hypothesized proportions in vector form rather than in a tibble. 
+  -we set response to the name of the column of interest, and set p to the hypothesized distribution. 
+  -The degrees of freedom are one less than the number of choices in the survey. 
+  -The p-value is very small, much lower than the significance level we set. Thus we conclude that the sample distribution of proportions is different than the hypothesized distribution of proportions.
+
+
+Exercise
+Visualizing goodness of fit
+The chi-square goodness of fit test compares proportions of each level of a categorical variable to hypothesized values. Before running such a test, it can be helpful to visually compare the distribution in the sample to the hypothesized distribution.
+
+Recall the vendor incoterms in the late_shipments dataset. Let's hypothesize that the four values occur with these frequencies in the population of shipments.
+
+EXW: 0.75
+CIP: 0.05
+DDP: 0.1
+FCA: 0.1
+late_shipments is available; tibble, dplyr, ggplot2, and infer are loaded.
+```{r, eval=FALSE}
+# Using late_shipments, count the vendor incoterms
+vendor_inco_term_counts <- late_shipments %>% 
+  count(vendor_inco_term)
+
+# Get the number of rows in the whole sample
+n_total <- nrow(late_shipments)
+
+hypothesized <- tribble(
+  ~ vendor_inco_term, ~ prop,
+  "EXW", 0.75,
+  "CIP", 0.05,
+  "DDP", 0.1,
+  "FCA", 0.1
+) %>%
+  # Add a column of hypothesized counts for the incoterms
+  mutate(n = prop * n_total)
+
+# See the results
+hypothesized
+
+# Using vendor_inco_term_counts, plot n vs. vendor_inco_term 
+ggplot(vendor_inco_term_counts,  aes(vendor_inco_term, n)) +
+  # Make it a (precalculated) bar plot
+  geom_col() +
+  # Add points from hypothesized 
+  geom_point(data = hypothesized)
+
+hypothesized_props <- c(
+  EXW = 0.75, CIP = 0.05, DDP = 0.1, FCA = 0.1
+)
+
+# Run chi-square goodness of fit test on vendor_inco_term
+test_results <- late_shipments%>%
+chisq_test(
+response = vendor_inco_term,
+p = hypothesized_props
+)
+
+# See the results
+test_results
+```
+
+  statistic chisq_df p_value
+      <dbl>    <dbl>   <dbl>
+1      3.51        3   0.319
+Fail to reject the null hypothesis and conclude that vendor_inco_term follows the distribution specified by hypothesized_props.
+The test to compare the proportions of a categorical variable to a hypothesized distribution is called a chi-square independence test.
+
+
+## Assumptions
+-Randomness
+  -Whether it uses one or two samples, every hypothesis test assumes that each sample is randomly sourced from its population. 
+  -If you don't have a random sample, then it won't be representative of the population. 
+  -To check this assumption, you need to know where your data came from. 
+  -There are no statistical or coding tests you can perform to check this. 
+  -If in doubt, ask the people involved in collecting the data, or a domain expert that understands the population being sampled.
+
+-Independence of observations
+  -Tests also assume that each observation is independent. 
+  -There are some special cases like paired t-tests where dependencies between two samples are allowed, but these change the calculations so you need to understand where such dependencies occur. 
+  -As you saw with the paired t-test, not accounting for dependencies results in an increased chance of false negative and false positive errors. 
+  -This is also a difficult problem to diagnose after you have the data. 
+  -It needs to be discussed before data collection.
+-Large sample size
+  -Hypothesis tests also assume that your sample is big enough. 
+  -Smaller samples incur greater uncertainty, and mean that the Central Limit Theorem doesn't apply, which in turn means that the sampling distribution might not be normally distributed. 
+  -The increased uncertainty means you get wider confidence intervals on the parameter you are trying to estimate. 
+  -The Central Limit Theorem not applying means the calculations on the sample could be nonsense, which increases the chance of false negative and positive errors. 
+  -The check for "big enough" depends on the test and that's where we'll head next:
+    -T-tests >=30 for all
+    -proportion, >=10 for 1 and 0
+      -Notice that if the probability of success is close to zero or close to one, then you need a bigger sample.
+      -The chi-square test is slightly more forgiving and only requires five successes and failures in each group rather than ten.
+      
+## Sanity check
+-One more check you can perform is to calculate a bootstrap distribution and visualize it with a histogram. 
+  -If you don't see a bell-shaped normal curve, then one of the assumptions hasn't been met. 
+  -In that case, you should revisit the data collection process, and see if any of the three assumptions of randomness, independence, and sample size do not hold.      
+
+Exercise
+Testing sample size
+In order to conduct a hypothesis test, and be sure that the result is fair, a sample must meet three requirements: it is a random sample of the population; the observations are independent; and there are enough observations. Of these, only the last condition is easily testable with code.
+
+The minimum sample size depends on the type of hypothesis tests you want to perform. Let's test some scenarios on the late_shipments dataset.
+
+late_shipments is available; dplyr is loaded.  
+```{r, eval=FALSE}
+# Get counts by freight_cost_group
+counts <- late_shipments %>%
+    group_by(freight_cost_group)%>%
+    count()
+
+
+# See the result
+counts
+
+# Inspect whether the counts are big enough
+all(counts$n >= 30)
+
+
+# Get counts by late
+counts <- late_shipments%>%
+group_by(late)%>%
+count()
+
+# See the result
+counts
+
+# Inspect whether the counts are big enough
+all(counts$n >= 10)
+
+# Count the values of vendor_inco_term and freight_cost_group
+counts <- late_shipments%>%
+group_by(vendor_inco_term,freight_cost_group)%>%
+count()
+
+
+# See the result
+counts
+
+# Inspect whether the counts are big enough
+all(counts$n >= 5)
+
+# Count the values of shipment_mode
+counts <- late_shipments %>%
+    group_by(shipment_mode)%>%
+    count()
+
+
+# See the result
+counts
+
+# Inspect whether the counts are big enough
+all(counts$n >= 30)
+```
+ While randomness and independence of observations can't easily be tested programmatically, you can test that your sample sizes are big enough to make a hypothesis test appropriate.
+  
+Note:
+Proportion tests are a special case of the chi-square independence test
+
+In which situations will the "There is Only One Test" framework provide p-value and decision rule results that are different than a traditional method like prop_test()?
+When the assumptions for the traditional method are not met.
+Simulation-based hypothesis tests allow more flexibility, and are not bound by the assumptions of traditional hypothesis tests.
+
+```{r, eval=FALSE}
+# Perform a proportion test appropriate to the hypotheses 
+test_results <- late_shipments %>% 
+  prop_test(
+    late ~ freight_cost_group,
+    order = c("expensive", "reasonable"),
+    success = "Yes",
+    alternative = "greater",
+    correct = FALSE
+  )
+
+# See the results
+test_results
+
+# Specify that we are interested in late proportions across freight_cost_groups, where "Yes" denotes success
+# Extend the pipeline to declare a null hypothesis that the variables are independent
+hypothesized <- late_shipments %>% 
+  specify(
+    late ~ freight_cost_group, 
+    success = "Yes"
+  ) %>% 
+hypothesize(null = "independence")
+ 
+
+# See the result
+hypothesized
+```
+  statistic chisq_df   p_value alternative lower_ci upper_ci
+      <dbl>    <dbl>     <dbl> <chr>          <dbl>    <dbl>
+1      16.0        1 0.0000319 greater        0.164        1
+
+The first two steps in the infer pipeline add attributes to the dataset in order to set up the simulation.
+
+
+## Recap: hypotheses and dataset
+-subset of the Stack Overflow survey was imbalanced, violating the assumptions of the traditional proportion test.
+-We can generate a simulated dataset by shuffling the response hobbyist values while keeping the explanatory age category values the same.
+- One permutation - Conceptually, this is how generate shuffles the dataset. 
+  -It selects the response column, randomly samples the whole column without replacement, then binds it back to the explanatory column. 
+  -Compare the original dataset on the left, and the shuffled dataset on the right. The hobbyist values have changed but the age category values have not.
+-Generating many replicates
+  -Since randomness is used in the shuffling step, we can't just create one simulated dataset, or the results would be unreliable. 
+  -generate performs the simulation step many times. 
+  -Each simulated dataset is called a replicate and represents an example of what we might expect the two columns to look like in a universe where the null hypothesis is true.
+-To call generate, tell it how many replicates you want. 
+  -For independence tests, the generation type should always be "permute". 
+  -bootstrap or simulate for point null hypotheses
+  -For convenience, generate combines all the simulated datasets into a single tibble. This is big! 
+    -It has as many rows as the original dataset, times the number of replicates.
+-Calculating the test statistic
+  -For each replicate, we calculate the test statistic, in this case the difference in proportions of hobbyists between the two age categories. Five thousand replicates gives five thousand differences in proportions. We have a distribution of test statistics. This is known as the null distribution.
+-calculate()
+  -To use the difference in proportions as the test statistic, set the stat argument to "diff in props". We need to tell calculate which proportion to subtract from which by setting the order.
+-visualize this null distribution as a histogram, call visualize. 
+  -This histogram doesn't have a normal bell curve. 
+  -That means the assumptions for the proportion test didn't hold. 
+  -Also notice that the test statistic only takes nine distinct values.
+-Calculating the test statistic on the original dataset
+  -To calculate a p-value, we need to compare the null distribution to the test statistic from the original dataset.
+-Visualizing the null distribution vs the observed stat
+  -Here's the null distribution histogram with a vertical line added at the observed statistic. 
+  -The observed statistic is at one edge of the distribution. 
+  -Does this make it different enough from the null distribution that we should reject the null hypothesis? 
+  -We'll need to calculate the p-value to find out.
+-To get the p-value, call get_p_value, passing the null distribution and observed statistic. 
+  -You also need to set the type of alternative hypothesis. 
+-this illustrates the danger of using traditional hypothesis tests when the assumptions aren't met. 
+  -Although it takes more code, the simulation-based hypothesis tests are more robust against small samples, and will help prevent you reaching poor conclusions.
+  
+```{r, eval=FALSE}
+# Extend the pipeline to generate 2000 permutations
+generated <- late_shipments %>% 
+  specify(
+    late ~ freight_cost_group, 
+    success = "Yes"
+  ) %>% 
+  hypothesize(null = "independence") %>% 
+generate(reps = 2000, type = "permute")
+
+# See the result
+generated
+
+# Extend the pipeline to calculate the difference in proportions (expensive minus reasonable)
+null_distn <- late_shipments %>% 
+  specify(
+    late ~ freight_cost_group, 
+    success = "Yes"
+  ) %>% 
+  hypothesize(null = "independence") %>% 
+  generate(reps = 2000, type = "permute") %>% 
+  calculate(
+stat = "diff in props",
+order = c("expensive", "reasonable"))
+
+
+
+
+# See the result
+null_distn
+
+# Visualize the null distribution
+visualize(null_distn)
+
+
+# Copy, paste, and modify the pipeline to get the observed statistic
+obs_stat <- late_shipments %>% 
+  specify(
+    late ~ freight_cost_group, 
+    success = "Yes"
+  ) %>% 
+  calculate(
+    stat = "diff in props", 
+    order = c("expensive", "reasonable")
+  )
+# Visualize the null dist'n, adding a vertical line at the observed statistic
+visualize(null_distn) +
+  geom_vline(aes(xintercept = stat), data = obs_stat)
+
+# Get the p-value
+p_value <- get_p_value(
+null_distn, obs_stat,
+direction = "two sided" # Not alternative = "two.sided"
+)
+```
+
+Response: late (factor)
+Explanatory: freight_cost_group (factor)
+Null Hypothesis: independence
+# A tibble: 2,000,000 × 3
+# Groups:   replicate [2,000]
+   late  freight_cost_group replicate
+   <fct> <fct>                  <int>
+ 1 No    reasonable                 1
+ 2 No    expensive                  1
+ 3 No    expensive                  1
+ 4 Yes   expensive                  1
+ 5 No    reasonable                 1
+ 6 No    reasonable                 1
+ 7 No    expensive                  1
+ 8 No    expensive                  1
+ 9 No    expensive                  1
+10 No    reasonable                 1
+# … with 1,999,990 more rows
+
+
+Response: late (factor)
+Explanatory: freight_cost_group (factor)
+Null Hypothesis: independence
+# A tibble: 2,000 × 2
+   replicate      stat
+       <int>     <dbl>
+ 1         1 -0.0131  
+ 2         2  0.00303 
+ 3         3 -0.00502 
+ 4         4  0.0111  
+ 5         5  0.0111  
+ 6         6 -0.0131  
+ 7         7  0.00303 
+ 8         8  0.0191  
+ 9         9 -0.000995
+10        10 -0.00905 
+# … with 1,990 more rows
+
+Response: late (factor)
+Explanatory: freight_cost_group (factor)
+# A tibble: 1 × 1
+    stat
+   <dbl>
+1 0.0634
+
+## Non-parametric tests
+-The simulation-based proportion test you performed using the infer pipeline avoided the assumption that the test statistic is normally distributed.
+-Hypothesis tests that don't assume a probability distribution for the test statistic are called non-parametric tests. -There are two types of non-parametric test. 
+  -The infer pipeline performs simulation-based tests like we just learned
+  -Other tests use the rank of the data.
+-Ranks of vectors
+  -Consider this numeric vector, x. The first value of x, one, is the smallest. The second value, fifteen, is the fifth smallest. 
+    -These orderings from smallest to largest are known as the ranks of the elements of x. 
+    -You can access them with the rank function. 
+  -You can avoid assumptions about normally distributed data by performing hypothesis tests on the ranks of a numeric input. 
+    -The Wilcoxon-Mann-Whitney test is, very roughly speaking, a t-test on ranked data.
+    -correct determines whether or not to apply a continuity correction to the z-scores. 
+      -Since ranks are integers and the normal distribution is continuous, this correction can improve the approximation.
+      -However, for large sample sizes its effect is trivial and not needed. 
+  -**Also known as the "Wilcoxon rank-sum test" and the "Mann-Whitney U test".
+-Kruskal-Wallis test
+  -In the same way that ANOVA extends t-tests to more than two groups, the Kruskal-Wallace test extends the Wilcoxon-Mann-Whitney to more than two groups. 
+  -That is, the Kruskal-Wallace test is a non-parametric version of ANOVA. 
+
+
+Exercise
+Simulation-based t-test
+In Chapter 2 you manually performed the steps for a t-test to explore these hypotheses.
+
+: The mean weight of shipments that weren't late is the same as the mean weight of shipments that were late.
+
+: The mean weight of shipments that weren't late is less than the mean weight of shipments that were late.
+
+You can run the test more concisely using infer's t_test().
+
+late_shipments %>% 
+  t_test(
+    weight_kilograms ~ late,
+    order = c("No", "Yes"),
+    alternative = "less"
+  )
+t_test() assumes that the null distribution is normal. We can avoid assumptions by using a simulation-based non-parametric equivalent.
+
+late_shipments is available; dplyr and infer are loaded.
+```{r, eval=FALSE}
+# Fill out the null distribution pipeline
+null_distn <- late_shipments %>% 
+  # Specify weight_kilograms vs. late
+  specify(weight_kilograms ~ late) %>% 
+  # Declare a null hypothesis of independence
+  hypothesize(null = "independence") %>% 
+  # Generate 1000 permutation replicates
+  generate(reps = 1000, type = "permute") %>% 
+  # Calculate the difference in means ("No" minus "Yes")
+  calculate(stat = "diff in means", order = c("No", "Yes"))
+
+# See the results
+null_distn
+
+# Calculate the observed difference in means
+obs_stat <- late_shipments %>% 
+  specify(weight_kilograms ~ late) %>% 
+  calculate(stat = "diff in means", order = c("No", "Yes"))
+
+# See the result
+obs_stat
+
+# Get the p-value
+p_value <- p_value <- get_p_value(
+null_distn, obs_stat,
+direction = "left" # Not alternative = "two.sided"
+)
+
+# See the result
+p_value
+```
+The p-value with the traditional t-test was 0.04, and the p-value from the simulation was close to 0.1. Depending upon the significance level you chose for the tests, this difference in p-values could have important consequences for whether or not to reject the null hypothesis
+
+
+Exercise
+Rank sum tests
+Another class of non-parametric hypothesis tests are called rank sum tests. Ranks are the positions of numeric values from smallest to largest. Think of them as positions in running events: whoever has the fastest (smallest) time is rank 1, second fastest is rank 2, and so on.
+
+By calculating on the ranks of data instead of the actual values, you can avoid making assumptions about the distribution of the test statistic. It's most robust in the same way that a median is more robust than a mean.
+
+Two commonly used rank-based tests are the Wilcoxon-Mann-Whitney test, which is like a non-parametric t-test, and the Kruskal-Wallis test, which is like a non-parametric ANOVA.
+
+late_shipments is available.
+```{r, eval=FALSE}
+# Run a Wilcoxon-Mann-Whitney test on weight_kilograms vs. late
+test_results <- wilcox.test(
+  weight_kilograms ~ late, 
+  data = late_shipments
+)
+
+# See the result
+test_results
+
+# Run a Kruskal-Wallace test on weight_kilograms vs. shipment_mode
+test_results <- kruskal.test(
+weight_kilograms ~ shipment_mode,
+data = late_shipments
+)
+
+# See the result
+test_results
+```
+The Wilcoxon-Mann-Whitney and Kruskal-Wallace tests are useful when you cannot satisfy the assumptions for parametric tests, and don't want the computational expense of simulation-based tests.
+
