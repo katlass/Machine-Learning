@@ -1,7 +1,7 @@
 #Performing analysis on Variable 1 : CPI with Gamma (ie has seasonality)
 
 #import libraries 
-library('forecast')
+library('forecast') 
 library('stats')
 
 #read/attach data
