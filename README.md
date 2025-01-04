@@ -1,8 +1,14 @@
 # Data Science and Machine Learning Projects
 
-This repository contains a collection of data science and machine learning projects using Python, R, and various tools and libraries. The projects demonstrate skills in supervised learning, time series analysis, statistical modeling, and custom function development. Below is an overview of the key files and their purposes.
+This repository contains a collection of data science and machine learning projects using Python, R, and various tools and libraries. The projects demonstrate skills in supervised learning, time series analysis, statistical modeling, and custom function development. Additionally, it includes coursework projects from Columbia University and Cornell University's Machine Learning program. Below is an overview of the key files, folders, and their purposes.
 
 ## Repository Contents
+
+### Coursework Folders
+- **`Columbia_Coursework`**  
+  Contains coursework projects from Columbia University’s Data Science graduate engineering program. My work showcases the heavy detailed mathematical computations that go behind most machine learning models as well as how to implement them from scratch.
+- **`Cornell_Machine_Learning`**  
+  Includes coursework from my certificate in Machine Learning from Cornell University. Projects cover topics such as supervised and unsupervised learning, optimization, and neural network design.
 
 ### Python Notebooks
 - **`Automatic Data Preparation.ipynb`**  
@@ -50,13 +56,13 @@ This repository contains a collection of data science and machine learning proje
 - **`backup`**  
   Backup of important data and models.
 
-
 ## Key Features
 - Predictive modeling for use cases such as heart disease prediction, spam detection, and MNIST classification.
 - Time series analysis using ARIMA and Holt-Winters methods.
 - Preprocessing, pipelines, and precision evaluation in Scikit-learn.
 - Neural network implementation using TensorFlow.
 - Advanced techniques like generalized linear models and parallel programming.
+- Academic projects from Columbia University and Cornell University, demonstrating mastery of foundational and advanced machine learning topics and mathematics.
 
 ## How to Use
 1. Clone the repository:
