@@ -5,7 +5,7 @@ This repository contains a collection of data science and machine learning proje
 ## Repository Contents
 
 ### Coursework Folders
-- **`Columbia_Coursework`**  
+- **[Columbia_Coursework](https://github.com/katlass/Machine-Learning/tree/main/Columbia-Machine-Learning-Course)**  
   Contains coursework projects from Columbia University’s Data Science graduate engineering program. My work showcases the heavy detailed mathematical computations that go behind most machine learning models as well as how to implement them from scratch.
 - **`Cornell_Machine_Learning`**  
   Includes coursework from my certificate in Machine Learning from Cornell University. Projects cover topics such as supervised and unsupervised learning, optimization, and neural network design.
