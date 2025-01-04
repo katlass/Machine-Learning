@@ -16,7 +16,7 @@ This repository contains a collection of data science and machine learning proje
 - **`Heart Disease Prediction with Sklearn.ipynb`**  
   Builds and evaluates models for predicting heart disease using Scikit-learn.
 - **`MNIST 97% Accuracy.ipynb`**  
-  Achieves high accuracy on the MNIST dataset with neural networks.
+  Achieves high accuracy on the MNIST dataset with simple KNN.
 - **`Model Precision in Scikit-learn.ipynb`**  
   Investigates precision and evaluation metrics in supervised learning.
 - **`Neural Networks in TensorFlow.ipynb`**  
@@ -48,9 +48,8 @@ This repository contains a collection of data science and machine learning proje
 - **`ML Custom Functions.ipynb`**  
   Contains reusable custom functions for machine learning pipelines.
 - **`backup`**  
-  Backup of important data or models.
-- **`README.md`**  
-  Provides an overview and guide for the repository.
+  Backup of important data and models.
+
 
 ## Key Features
 - Predictive modeling for use cases such as heart disease prediction, spam detection, and MNIST classification.
