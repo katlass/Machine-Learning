@@ -68,3 +68,7 @@ This repository contains a collection of data science and machine learning proje
 1. Clone the repository:
    ```bash
    git clone https://github.com/your-repo-name.git
+   
+## Undergraduate Computer Science Independent s=Study: 
+Eden is a user-friendly application that leverages OLS regression, advanced functional modeling, and time series forecasting (Holt-Winters, VAR) to help small businesses optimize production, pricing, advertising, and financial decisions with no technical expertise required.
+[LINK](https://github.com/katlass/Umass-Senior-Project-2019)
