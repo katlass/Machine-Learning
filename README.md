@@ -69,7 +69,9 @@ This repository contains a collection of data science and machine learning proje
    ```bash
    git clone https://github.com/your-repo-name.git
    
-## Undergraduate Computer Science Independent Study: 
+## Other Projects 
+
+### Undergraduate Computer Science Independent Study:
 
 Eden is a user-friendly application that leverages OLS regression, advanced functional modeling, and time series forecasting (Holt-Winters, VAR) to help small businesses optimize production, pricing, advertising, and financial decisions with no technical expertise required.
 
